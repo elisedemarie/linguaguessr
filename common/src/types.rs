@@ -141,19 +141,18 @@ impl Language {
     }
 
     pub fn suggestions(query: &str) -> Vec<Language> {
-        if query.is_empty() {
-            return Language::all().to_vec();
-        }
         let query_lower = query.to_lowercase();
-        Language::all()
+        let mut results: Vec<Language> = Language::all()
             .iter()
             .filter(|lang| {
-                lang.aliases()
+                query_lower.is_empty() || lang.aliases()
                     .iter()
                     .any(|alias| alias.starts_with(query_lower.as_str()))
             })
             .cloned()
-            .collect()
+            .collect();
+        results.sort_by(|a, b| a.label().cmp(b.label()));
+        results
     }
 }
 
@@ -167,6 +166,25 @@ mod tests {
     fn empty_query_returns_all_languages() {
         let result = Language::suggestions("");
         assert_eq!(result.len(), 30);
+    }
+
+    #[test]
+    fn empty_query_first_result_is_arabic() {
+        let result = Language::suggestions("");
+        assert_eq!(result[0], Language::Arabic);
+    }
+
+    #[test]
+    fn empty_query_last_result_is_vietnamese() {
+        let result = Language::suggestions("");
+        assert_eq!(result[result.len() - 1], Language::Vietnamese);
+    }
+
+    #[test]
+    fn filtered_results_are_also_sorted() {
+        let result = Language::suggestions("p");
+        // Persian (FA), Polish (PL), Portuguese (PT) — alphabetical
+        assert_eq!(result, vec![Language::Persian, Language::Polish, Language::Portuguese]);
     }
 
     // --- original 5 languages ---
