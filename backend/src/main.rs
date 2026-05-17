@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 use axum::routing::{get, post};
 use axum::Router;
 use handlers::{AppState, get_game, post_guess};
+use tower_http::cors::CorsLayer;
 use wikipedia::ReqwestWikipediaClient;
 
 #[tokio::main]
@@ -20,6 +21,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/game", get(get_game))
         .route("/api/game/:game_id/guess", post(post_guess))
+        .layer(CorsLayer::permissive())
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

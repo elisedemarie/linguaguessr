@@ -7,14 +7,101 @@
 body {
   font-family: sans-serif;
   background: #f5f5f5;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
-  padding: 2rem;
+  align-items: flex-start;
+  padding: 3rem 1rem;
 }
+
+.app {
+  width: 100%;
+  max-width: 640px;
+}
+
+/* --- Home --- */
+
+.home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 6rem;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.play-btn {
+  margin-top: 1rem;
+  padding: 0.75rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: #4f8ef7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.play-btn:hover {
+  background: #3a7ae0;
+}
+
+/* --- Loading / Error --- */
+
+.loading, .error {
+  text-align: center;
+  padding-top: 6rem;
+  color: #666;
+}
+
+.error-detail {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #e55;
+}
+
+/* --- Round --- */
+
+.round {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.round-counter {
+  font-size: 0.9rem;
+  color: #888;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.text-block {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: #222;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* --- Combobox --- */
 
 .combobox {
   position: relative;
-  width: 320px;
 }
 
 .combobox input {
@@ -53,10 +140,5 @@ body {
   background: #f0f4ff;
 }
 
-.suggestions li:first-child {
-  border-radius: 6px 6px 0 0;
-}
-
-.suggestions li:last-child {
-  border-radius: 0 0 6px 6px;
-}
+.suggestions li:first-child { border-radius: 6px 6px 0 0; }
+.suggestions li:last-child  { border-radius: 0 0 6px 6px; }
