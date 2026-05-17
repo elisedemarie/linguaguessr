@@ -52,11 +52,36 @@ impl WikipediaClient for ReqwestWikipediaClient {
 
 pub fn wiki_base_url(lang: &Language) -> String {
     let code = match lang {
-        Language::English => "en",
-        Language::French => "fr",
-        Language::Japanese => "ja",
-        Language::Arabic => "ar",
-        Language::Russian => "ru",
+        Language::English    => "en",
+        Language::French     => "fr",
+        Language::Japanese   => "ja",
+        Language::Arabic     => "ar",
+        Language::Russian    => "ru",
+        Language::Spanish    => "es",
+        Language::Chinese    => "zh",
+        Language::Hindi      => "hi",
+        Language::Bengali    => "bn",
+        Language::Portuguese => "pt",
+        Language::Indonesian => "id",
+        Language::Urdu       => "ur",
+        Language::German     => "de",
+        Language::Korean     => "ko",
+        Language::Vietnamese => "vi",
+        Language::Telugu     => "te",
+        Language::Marathi    => "mr",
+        Language::Tamil      => "ta",
+        Language::Turkish    => "tr",
+        Language::Persian    => "fa",
+        Language::Italian    => "it",
+        Language::Thai       => "th",
+        Language::Swahili    => "sw",
+        Language::Polish     => "pl",
+        Language::Ukrainian  => "uk",
+        Language::Dutch      => "nl",
+        Language::Greek      => "el",
+        Language::Romanian   => "ro",
+        Language::Czech      => "cs",
+        Language::Hungarian  => "hu",
     };
     format!("https://{}.wikipedia.org", code)
 }
@@ -119,30 +144,36 @@ mod tests {
 
     // --- URL construction ---
 
-    #[test]
-    fn english_uses_en_subdomain() {
-        assert_eq!(wiki_base_url(&Language::English), "https://en.wikipedia.org");
-    }
-
-    #[test]
-    fn french_uses_fr_subdomain() {
-        assert_eq!(wiki_base_url(&Language::French), "https://fr.wikipedia.org");
-    }
-
-    #[test]
-    fn japanese_uses_ja_subdomain() {
-        assert_eq!(wiki_base_url(&Language::Japanese), "https://ja.wikipedia.org");
-    }
-
-    #[test]
-    fn arabic_uses_ar_subdomain() {
-        assert_eq!(wiki_base_url(&Language::Arabic), "https://ar.wikipedia.org");
-    }
-
-    #[test]
-    fn russian_uses_ru_subdomain() {
-        assert_eq!(wiki_base_url(&Language::Russian), "https://ru.wikipedia.org");
-    }
+    #[test] fn english_url()    { assert_eq!(wiki_base_url(&Language::English),    "https://en.wikipedia.org"); }
+    #[test] fn french_url()     { assert_eq!(wiki_base_url(&Language::French),     "https://fr.wikipedia.org"); }
+    #[test] fn japanese_url()   { assert_eq!(wiki_base_url(&Language::Japanese),   "https://ja.wikipedia.org"); }
+    #[test] fn arabic_url()     { assert_eq!(wiki_base_url(&Language::Arabic),     "https://ar.wikipedia.org"); }
+    #[test] fn russian_url()    { assert_eq!(wiki_base_url(&Language::Russian),    "https://ru.wikipedia.org"); }
+    #[test] fn spanish_url()    { assert_eq!(wiki_base_url(&Language::Spanish),    "https://es.wikipedia.org"); }
+    #[test] fn chinese_url()    { assert_eq!(wiki_base_url(&Language::Chinese),    "https://zh.wikipedia.org"); }
+    #[test] fn hindi_url()      { assert_eq!(wiki_base_url(&Language::Hindi),      "https://hi.wikipedia.org"); }
+    #[test] fn bengali_url()    { assert_eq!(wiki_base_url(&Language::Bengali),    "https://bn.wikipedia.org"); }
+    #[test] fn portuguese_url() { assert_eq!(wiki_base_url(&Language::Portuguese), "https://pt.wikipedia.org"); }
+    #[test] fn indonesian_url() { assert_eq!(wiki_base_url(&Language::Indonesian), "https://id.wikipedia.org"); }
+    #[test] fn urdu_url()       { assert_eq!(wiki_base_url(&Language::Urdu),       "https://ur.wikipedia.org"); }
+    #[test] fn german_url()     { assert_eq!(wiki_base_url(&Language::German),     "https://de.wikipedia.org"); }
+    #[test] fn korean_url()     { assert_eq!(wiki_base_url(&Language::Korean),     "https://ko.wikipedia.org"); }
+    #[test] fn vietnamese_url() { assert_eq!(wiki_base_url(&Language::Vietnamese), "https://vi.wikipedia.org"); }
+    #[test] fn telugu_url()     { assert_eq!(wiki_base_url(&Language::Telugu),     "https://te.wikipedia.org"); }
+    #[test] fn marathi_url()    { assert_eq!(wiki_base_url(&Language::Marathi),    "https://mr.wikipedia.org"); }
+    #[test] fn tamil_url()      { assert_eq!(wiki_base_url(&Language::Tamil),      "https://ta.wikipedia.org"); }
+    #[test] fn turkish_url()    { assert_eq!(wiki_base_url(&Language::Turkish),    "https://tr.wikipedia.org"); }
+    #[test] fn persian_url()    { assert_eq!(wiki_base_url(&Language::Persian),    "https://fa.wikipedia.org"); }
+    #[test] fn italian_url()    { assert_eq!(wiki_base_url(&Language::Italian),    "https://it.wikipedia.org"); }
+    #[test] fn thai_url()       { assert_eq!(wiki_base_url(&Language::Thai),       "https://th.wikipedia.org"); }
+    #[test] fn swahili_url()    { assert_eq!(wiki_base_url(&Language::Swahili),    "https://sw.wikipedia.org"); }
+    #[test] fn polish_url()     { assert_eq!(wiki_base_url(&Language::Polish),     "https://pl.wikipedia.org"); }
+    #[test] fn ukrainian_url()  { assert_eq!(wiki_base_url(&Language::Ukrainian),  "https://uk.wikipedia.org"); }
+    #[test] fn dutch_url()      { assert_eq!(wiki_base_url(&Language::Dutch),      "https://nl.wikipedia.org"); }
+    #[test] fn greek_url()      { assert_eq!(wiki_base_url(&Language::Greek),      "https://el.wikipedia.org"); }
+    #[test] fn romanian_url()   { assert_eq!(wiki_base_url(&Language::Romanian),   "https://ro.wikipedia.org"); }
+    #[test] fn czech_url()      { assert_eq!(wiki_base_url(&Language::Czech),      "https://cs.wikipedia.org"); }
+    #[test] fn hungarian_url()  { assert_eq!(wiki_base_url(&Language::Hungarian),  "https://hu.wikipedia.org"); }
 
     // --- truncate_extract ---
 

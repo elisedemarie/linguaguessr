@@ -21,6 +21,7 @@ pub struct AppState {
 pub async fn get_game(State(state): State<AppState>) -> impl IntoResponse {
     let mut languages = Language::all().to_vec();
     rand::seq::SliceRandom::shuffle(languages.as_mut_slice(), &mut rand::thread_rng());
+    let languages: Vec<Language> = languages.into_iter().take(5).collect();
 
     let mut rounds = Vec::new();
     for lang in languages {
