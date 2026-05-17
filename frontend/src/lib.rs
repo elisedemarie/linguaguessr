@@ -12,6 +12,7 @@ enum GamePhase {
     Home,
     Loading,
     Playing(GameView),
+    Finished { score: usize, total: usize },
     Error(String),
 }
 
@@ -24,12 +25,14 @@ pub fn main() {
 pub fn App() -> impl IntoView {
     let phase = RwSignal::new(GamePhase::Home);
 
+    let go_home = move |_| phase.set(GamePhase::Home);
+
     let start_game = move |_| {
         phase.set(GamePhase::Loading);
         spawn_local(async move {
             match fetch_game().await {
                 Ok(game) => phase.set(GamePhase::Playing(game)),
-                Err(e) => phase.set(GamePhase::Error(e)),
+                Err(e)   => phase.set(GamePhase::Error(e)),
             }
         });
     };
@@ -37,10 +40,29 @@ pub fn App() -> impl IntoView {
     view! {
         <div class="app">
             {move || match phase.get() {
-                GamePhase::Home => view! { <HomeScreen on_play=start_game /> }.into_any(),
-                GamePhase::Loading => view! { <LoadingScreen /> }.into_any(),
-                GamePhase::Playing(game) => view! { <RoundScreen game=game /> }.into_any(),
-                GamePhase::Error(msg) => view! { <ErrorScreen message=msg /> }.into_any(),
+                GamePhase::Home => view! {
+                    <HomeScreen on_play=start_game />
+                }.into_any(),
+                GamePhase::Loading => view! {
+                    <LoadingScreen />
+                }.into_any(),
+                GamePhase::Playing(game) => {
+                    let total = game.rounds.len();
+                    view! {
+                        <RoundScreen
+                            game=game
+                            on_finish=Callback::new(move |score| {
+                                phase.set(GamePhase::Finished { score, total });
+                            })
+                        />
+                    }.into_any()
+                },
+                GamePhase::Finished { score, total } => view! {
+                    <FinishedScreen score=score total=total on_play_again=go_home />
+                }.into_any(),
+                GamePhase::Error(msg) => view! {
+                    <ErrorScreen message=msg />
+                }.into_any(),
             }}
         </div>
     }
@@ -98,9 +120,7 @@ fn HomeScreen(on_play: impl Fn(leptos::web_sys::MouseEvent) + 'static) -> impl I
 #[component]
 fn LoadingScreen() -> impl IntoView {
     view! {
-        <div class="loading">
-            <p>"Loading your game..."</p>
-        </div>
+        <div class="loading"><p>"Loading your game..."</p></div>
     }
 }
 
@@ -115,19 +135,47 @@ fn ErrorScreen(message: String) -> impl IntoView {
 }
 
 #[component]
-fn RoundScreen(game: GameView) -> impl IntoView {
-    let game_id = game.game_id;
-    let total = game.rounds.len();
+fn FinishedScreen(
+    score: usize,
+    total: usize,
+    on_play_again: impl Fn(leptos::web_sys::MouseEvent) + 'static,
+) -> impl IntoView {
+    view! {
+        <div class="home">
+            <h1 class="title">"Game over!"</h1>
+            <p class="score">{score}" / "{total}</p>
+            <p class="subtitle">{score_message(score, total)}</p>
+            <button class="play-btn" on:click=on_play_again>"Play again"</button>
+        </div>
+    }
+}
+
+fn score_message(score: usize, total: usize) -> &'static str {
+    match score * 100 / total {
+        100          => "Perfect — flawless!",
+        80..=99      => "Excellent work!",
+        60..=79      => "Pretty good!",
+        40..=59      => "Getting there.",
+        _            => "Keep practising!",
+    }
+}
+
+#[component]
+fn RoundScreen(game: GameView, on_finish: Callback<usize>) -> impl IntoView {
+    let game_id   = game.game_id;
+    let total     = game.rounds.len();
+    let rounds    = StoredValue::new(game.rounds);
+
     let round_index = RwSignal::new(0usize);
-    let rounds = StoredValue::new(game.rounds);
+    let score       = RwSignal::new(0usize);
+    let selected    = RwSignal::new(Option::<Language>::None);
+    let feedback    = RwSignal::new(Option::<GuessResponse>::None);
+    let submitting  = RwSignal::new(false);
+    let query       = RwSignal::new(String::new());
 
     let current_round = Memo::new(move |_| {
         rounds.with_value(|r| r[round_index.get()].clone())
     });
-
-    let selected = RwSignal::new(Option::<Language>::None);
-    let feedback = RwSignal::new(Option::<GuessResponse>::None);
-    let submitting = RwSignal::new(false);
 
     let on_submit = move |_| {
         let Some(lang) = selected.get() else { return };
@@ -136,12 +184,25 @@ fn RoundScreen(game: GameView) -> impl IntoView {
         spawn_local(async move {
             match submit_guess(game_id, round_id, lang).await {
                 Ok(result) => {
+                    if result.correct { score.update(|s| *s += 1); }
                     feedback.set(Some(result));
                     submitting.set(false);
                 }
                 Err(_) => submitting.set(false),
             }
         });
+    };
+
+    let on_next = move |_| {
+        let next = round_index.get() + 1;
+        if next >= total {
+            on_finish.run(score.get());
+        } else {
+            round_index.set(next);
+            selected.set(None);
+            feedback.set(None);
+            query.set(String::new());
+        }
     };
 
     view! {
@@ -153,11 +214,11 @@ fn RoundScreen(game: GameView) -> impl IntoView {
                 {move || current_round.get().text}
             </div>
 
-            // Input area — hidden once feedback arrives
             <Show when=move || feedback.get().is_none()>
-                <LanguageCombobox on_select=Callback::new(move |lang| {
-                    selected.set(Some(lang));
-                }) />
+                <LanguageCombobox
+                    query=query
+                    on_select=Callback::new(move |lang| selected.set(Some(lang)))
+                />
                 <button
                     class="submit-btn"
                     prop:disabled=move || selected.get().is_none() || submitting.get()
@@ -167,7 +228,6 @@ fn RoundScreen(game: GameView) -> impl IntoView {
                 </button>
             </Show>
 
-            // Feedback — shown after submission
             <Show when=move || feedback.get().is_some()>
                 {move || feedback.get().map(|f| {
                     if f.correct {
@@ -183,15 +243,20 @@ fn RoundScreen(game: GameView) -> impl IntoView {
                         }.into_any()
                     }
                 })}
+                <button class="next-btn" on:click=on_next>
+                    {move || if round_index.get() + 1 >= total { "See my score" } else { "Next →" }}
+                </button>
             </Show>
         </div>
     }
 }
 
 #[component]
-pub fn LanguageCombobox(on_select: Callback<Language>) -> impl IntoView {
-    let query = RwSignal::new(String::new());
-    let is_open = RwSignal::new(false);
+pub fn LanguageCombobox(
+    on_select: Callback<Language>,
+    query: RwSignal<String>,
+) -> impl IntoView {
+    let is_open   = RwSignal::new(false);
     let suggestions = Memo::new(move |_| Language::suggestions(&query.get()));
 
     view! {
