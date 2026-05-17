@@ -1,7 +1,8 @@
-use common::api::GameView;
+use common::api::{GameView, GuessRequest, GuessResponse};
 use common::types::Language;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
+use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
 const BACKEND_URL: &str = "http://localhost:3000";
@@ -36,18 +37,10 @@ pub fn App() -> impl IntoView {
     view! {
         <div class="app">
             {move || match phase.get() {
-                GamePhase::Home => view! {
-                    <HomeScreen on_play=start_game />
-                }.into_any(),
-                GamePhase::Loading => view! {
-                    <LoadingScreen />
-                }.into_any(),
-                GamePhase::Playing(game) => view! {
-                    <RoundScreen game=game />
-                }.into_any(),
-                GamePhase::Error(msg) => view! {
-                    <ErrorScreen message=msg />
-                }.into_any(),
+                GamePhase::Home => view! { <HomeScreen on_play=start_game /> }.into_any(),
+                GamePhase::Loading => view! { <LoadingScreen /> }.into_any(),
+                GamePhase::Playing(game) => view! { <RoundScreen game=game /> }.into_any(),
+                GamePhase::Error(msg) => view! { <ErrorScreen message=msg /> }.into_any(),
             }}
         </div>
     }
@@ -63,10 +56,32 @@ async fn fetch_game() -> Result<GameView, String> {
         return Err(format!("Server error: {}", response.status()));
     }
 
-    response
-        .json::<GameView>()
-        .await
-        .map_err(|e| format!("Parse error: {e}"))
+    response.json::<GameView>().await.map_err(|e| format!("Parse error: {e}"))
+}
+
+async fn submit_guess(
+    game_id: Uuid,
+    round_id: Uuid,
+    language: Language,
+) -> Result<GuessResponse, String> {
+    let body = serde_json::to_string(&GuessRequest { round_id, language })
+        .map_err(|e| format!("Serialise error: {e}"))?;
+
+    let response = gloo_net::http::Request::post(
+        &format!("{BACKEND_URL}/api/game/{game_id}/guess"),
+    )
+    .header("Content-Type", "application/json")
+    .body(body)
+    .map_err(|e| format!("Request error: {e}"))?
+    .send()
+    .await
+    .map_err(|e| format!("Network error: {e}"))?;
+
+    if !response.ok() {
+        return Err(format!("Server error: {}", response.status()));
+    }
+
+    response.json::<GuessResponse>().await.map_err(|e| format!("Parse error: {e}"))
 }
 
 #[component]
@@ -101,11 +116,33 @@ fn ErrorScreen(message: String) -> impl IntoView {
 
 #[component]
 fn RoundScreen(game: GameView) -> impl IntoView {
+    let game_id = game.game_id;
     let total = game.rounds.len();
     let round_index = RwSignal::new(0usize);
     let rounds = StoredValue::new(game.rounds);
 
-    let current_round = Memo::new(move |_| rounds.with_value(|r| r[round_index.get()].clone()));
+    let current_round = Memo::new(move |_| {
+        rounds.with_value(|r| r[round_index.get()].clone())
+    });
+
+    let selected = RwSignal::new(Option::<Language>::None);
+    let feedback = RwSignal::new(Option::<GuessResponse>::None);
+    let submitting = RwSignal::new(false);
+
+    let on_submit = move |_| {
+        let Some(lang) = selected.get() else { return };
+        let round_id = current_round.get().round_id;
+        submitting.set(true);
+        spawn_local(async move {
+            match submit_guess(game_id, round_id, lang).await {
+                Ok(result) => {
+                    feedback.set(Some(result));
+                    submitting.set(false);
+                }
+                Err(_) => submitting.set(false),
+            }
+        });
+    };
 
     view! {
         <div class="round">
@@ -115,7 +152,38 @@ fn RoundScreen(game: GameView) -> impl IntoView {
             <div class="text-block">
                 {move || current_round.get().text}
             </div>
-            <LanguageCombobox on_select=Callback::new(move |_lang: Language| {}) />
+
+            // Input area — hidden once feedback arrives
+            <Show when=move || feedback.get().is_none()>
+                <LanguageCombobox on_select=Callback::new(move |lang| {
+                    selected.set(Some(lang));
+                }) />
+                <button
+                    class="submit-btn"
+                    prop:disabled=move || selected.get().is_none() || submitting.get()
+                    on:click=on_submit
+                >
+                    {move || if submitting.get() { "Submitting..." } else { "Submit" }}
+                </button>
+            </Show>
+
+            // Feedback — shown after submission
+            <Show when=move || feedback.get().is_some()>
+                {move || feedback.get().map(|f| {
+                    if f.correct {
+                        view! {
+                            <div class="feedback correct">"✓ Correct!"</div>
+                        }.into_any()
+                    } else {
+                        view! {
+                            <div class="feedback wrong">
+                                "✗ Wrong — it was "
+                                <strong>{f.correct_language.label().to_string()}</strong>
+                            </div>
+                        }.into_any()
+                    }
+                })}
+            </Show>
         </div>
     }
 }

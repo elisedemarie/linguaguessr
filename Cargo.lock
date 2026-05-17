@@ -504,6 +504,7 @@ dependencies = [
  "gloo-net",
  "leptos",
  "serde_json",
+ "uuid",
  "wasm-bindgen",
 ]
 

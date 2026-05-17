@@ -98,6 +98,51 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
+/* --- Submit button --- */
+
+.submit-btn {
+  width: 100%;
+  padding: 0.7rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: #4f8ef7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #3a7ae0;
+}
+
+.submit-btn:disabled {
+  background: #b0c8f7;
+  cursor: not-allowed;
+}
+
+/* --- Feedback --- */
+
+.feedback {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.feedback.correct {
+  background: #e6f9ee;
+  color: #1a7a3f;
+  border: 1px solid #a3d9b8;
+}
+
+.feedback.wrong {
+  background: #fdecea;
+  color: #b91c1c;
+  border: 1px solid #f5b4b4;
+}
+
 /* --- Combobox --- */
 
 .combobox {
