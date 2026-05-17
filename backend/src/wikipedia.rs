@@ -87,10 +87,16 @@ pub fn wiki_base_url(lang: &Language) -> String {
 }
 
 pub fn truncate_extract(text: &str) -> String {
-    if text.len() <= MAX_CHARS {
+    if text.chars().count() <= MAX_CHARS {
         return text.to_string();
     }
-    let cut = text[..MAX_CHARS].rfind(' ').unwrap_or(MAX_CHARS);
+    // Find the byte position of the MAX_CHARS-th character — always a valid boundary
+    let byte_limit = text.char_indices()
+        .nth(MAX_CHARS)
+        .map(|(i, _)| i)
+        .unwrap_or(text.len());
+    // Try to cut at the last space to avoid splitting mid-word in Latin scripts
+    let cut = text[..byte_limit].rfind(' ').unwrap_or(byte_limit);
     text[..cut].to_string()
 }
 
@@ -175,6 +181,16 @@ mod tests {
     #[test] fn czech_url()      { assert_eq!(wiki_base_url(&Language::Czech),      "https://cs.wikipedia.org"); }
     #[test] fn hungarian_url()  { assert_eq!(wiki_base_url(&Language::Hungarian),  "https://hu.wikipedia.org"); }
 
+    fn long_multibyte_extract() -> String {
+        // 599 ASCII bytes then Thai chars — byte 600 lands inside a 3-byte Thai char, triggering the panic
+        "a".repeat(599) + &"กขคง".repeat(50)
+    }
+
+    fn long_arabic_extract() -> String {
+        // 599 ASCII bytes then Arabic chars — byte 600 lands inside a 2-byte Arabic char
+        "a".repeat(599) + &"مرحبا بالعالم ".repeat(20)
+    }
+
     // --- truncate_extract ---
 
     #[test]
@@ -183,15 +199,33 @@ mod tests {
     }
 
     #[test]
-    fn long_text_truncated_at_or_below_max_chars() {
+    fn long_ascii_text_truncated_within_char_limit() {
         let result = truncate_extract(&long_extract());
-        assert!(result.len() <= MAX_CHARS);
+        assert!(result.chars().count() <= MAX_CHARS);
     }
 
     #[test]
     fn long_text_not_cut_mid_word() {
         let result = truncate_extract(&long_extract());
         assert!(!result.ends_with(|c: char| c.is_alphanumeric()));
+    }
+
+    #[test]
+    fn multibyte_thai_text_does_not_panic() {
+        let result = truncate_extract(&long_multibyte_extract());
+        assert!(result.chars().count() <= MAX_CHARS);
+    }
+
+    #[test]
+    fn multibyte_thai_text_result_is_valid_utf8() {
+        let result = truncate_extract(&long_multibyte_extract());
+        assert!(std::str::from_utf8(result.as_bytes()).is_ok());
+    }
+
+    #[test]
+    fn multibyte_arabic_text_does_not_panic() {
+        let result = truncate_extract(&long_arabic_extract());
+        assert!(result.chars().count() <= MAX_CHARS);
     }
 
     #[test]
