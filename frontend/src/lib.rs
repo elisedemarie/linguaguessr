@@ -5,7 +5,10 @@ use leptos::task::spawn_local;
 use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
-const BACKEND_URL: &str = "http://localhost:3000";
+const BACKEND_URL: &str = match option_env!("BACKEND_URL") {
+    Some(url) => url,
+    None => "http://localhost:3000",
+};
 
 #[derive(Clone)]
 enum GamePhase {

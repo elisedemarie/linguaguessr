@@ -24,7 +24,8 @@ async fn main() {
         .layer(CorsLayer::permissive())
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    println!("Backend listening on http://0.0.0.0:3000");
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await.unwrap();
+    println!("Backend listening on http://0.0.0.0:{port}");
     axum::serve(listener, app).await.unwrap();
 }

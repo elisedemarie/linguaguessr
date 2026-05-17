@@ -1,0 +1,7 @@
+target/
+frontend/dist/
+mutants.out/
+mutants.out.old/
+.git/
+plans/
+*.md
