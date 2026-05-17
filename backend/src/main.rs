@@ -19,13 +19,13 @@ async fn main() {
         wikipedia: Arc::new(ReqwestWikipediaClient::new()),
     };
 
-    let frontend_url = std::env::var("FRONTEND_URL")
-        .unwrap_or_else(|_| "http://localhost:8080".to_string());
-
-    let cors = CorsLayer::new()
-        .allow_origin(frontend_url.parse::<HeaderValue>().expect("invalid FRONTEND_URL"))
-        .allow_methods([Method::GET, Method::POST])
-        .allow_headers([axum::http::header::CONTENT_TYPE]);
+    let cors = match std::env::var("FRONTEND_URL") {
+        Ok(url) => CorsLayer::new()
+            .allow_origin(url.parse::<HeaderValue>().expect("invalid FRONTEND_URL"))
+            .allow_methods([Method::GET, Method::POST])
+            .allow_headers([axum::http::header::CONTENT_TYPE]),
+        Err(_) => CorsLayer::permissive(),
+    };
 
     let app = Router::new()
         .route("/api/game", get(get_game))
