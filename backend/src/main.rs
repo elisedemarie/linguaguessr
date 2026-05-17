@@ -1,3 +1,5 @@
+mod wikipedia;
+
 #[tokio::main]
 async fn main() {
     let app = axum::Router::new();
