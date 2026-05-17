@@ -10,7 +10,7 @@ pub enum Language {
 }
 
 impl Language {
-    fn all() -> &'static [Language] {
+    pub fn all() -> &'static [Language] {
         &[
             Language::English,
             Language::French,

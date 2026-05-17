@@ -23,7 +23,11 @@ pub struct ReqwestWikipediaClient {
 
 impl ReqwestWikipediaClient {
     pub fn new() -> Self {
-        Self { client: reqwest::Client::new() }
+        let client = reqwest::Client::builder()
+            .user_agent("linguaguessr/0.1 (https://github.com/elisedemarie/linguaguessr)")
+            .build()
+            .expect("failed to build HTTP client");
+        Self { client }
     }
 }
 
@@ -46,7 +50,7 @@ impl WikipediaClient for ReqwestWikipediaClient {
     }
 }
 
-pub fn wiki_url(lang: &Language) -> String {
+pub fn wiki_base_url(lang: &Language) -> String {
     let code = match lang {
         Language::English => "en",
         Language::French => "fr",
@@ -54,7 +58,7 @@ pub fn wiki_url(lang: &Language) -> String {
         Language::Arabic => "ar",
         Language::Russian => "ru",
     };
-    format!("https://{}.wikipedia.org/api/rest_v1/page/random/summary", code)
+    format!("https://{}.wikipedia.org", code)
 }
 
 pub fn truncate_extract(text: &str) -> String {
@@ -83,7 +87,7 @@ pub async fn fetch_article_from(
 }
 
 pub async fn fetch_article(lang: &Language, client: &dyn WikipediaClient) -> Result<String, FetchError> {
-    fetch_article_from(lang, client, &wiki_url(lang)).await
+    fetch_article_from(lang, client, &wiki_base_url(lang)).await
 }
 
 #[cfg(test)]
@@ -117,27 +121,27 @@ mod tests {
 
     #[test]
     fn english_uses_en_subdomain() {
-        assert!(wiki_url(&Language::English).contains("en.wikipedia.org"));
+        assert_eq!(wiki_base_url(&Language::English), "https://en.wikipedia.org");
     }
 
     #[test]
     fn french_uses_fr_subdomain() {
-        assert!(wiki_url(&Language::French).contains("fr.wikipedia.org"));
+        assert_eq!(wiki_base_url(&Language::French), "https://fr.wikipedia.org");
     }
 
     #[test]
     fn japanese_uses_ja_subdomain() {
-        assert!(wiki_url(&Language::Japanese).contains("ja.wikipedia.org"));
+        assert_eq!(wiki_base_url(&Language::Japanese), "https://ja.wikipedia.org");
     }
 
     #[test]
     fn arabic_uses_ar_subdomain() {
-        assert!(wiki_url(&Language::Arabic).contains("ar.wikipedia.org"));
+        assert_eq!(wiki_base_url(&Language::Arabic), "https://ar.wikipedia.org");
     }
 
     #[test]
     fn russian_uses_ru_subdomain() {
-        assert!(wiki_url(&Language::Russian).contains("ru.wikipedia.org"));
+        assert_eq!(wiki_base_url(&Language::Russian), "https://ru.wikipedia.org");
     }
 
     // --- truncate_extract ---

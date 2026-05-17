@@ -1,8 +1,27 @@
+mod game;
+mod handlers;
 mod wikipedia;
+
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+use axum::routing::get;
+use axum::Router;
+use handlers::{AppState, get_game};
+use wikipedia::ReqwestWikipediaClient;
 
 #[tokio::main]
 async fn main() {
-    let app = axum::Router::new();
+    let state = AppState {
+        store: Arc::new(Mutex::new(HashMap::new())),
+        wikipedia: Arc::new(ReqwestWikipediaClient::new()),
+    };
+
+    let app = Router::new()
+        .route("/api/game", get(get_game))
+        .with_state(state);
+
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    println!("Backend listening on http://0.0.0.0:3000");
     axum::serve(listener, app).await.unwrap();
 }
