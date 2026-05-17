@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use uuid::Uuid;
 
+use common::api::{GuessRequest, GuessResponse};
 use common::types::Language;
 use crate::game::{GameSession, Round, session_to_view};
 use crate::wikipedia::{fetch_article, WikipediaClient};
@@ -39,6 +40,25 @@ pub async fn get_game(State(state): State<AppState>) -> impl IntoResponse {
     state.store.lock().unwrap().insert(game_id, session);
 
     Json(view).into_response()
+}
+
+pub async fn post_guess(
+    State(state): State<AppState>,
+    Path(game_id): Path<Uuid>,
+    Json(request): Json<GuessRequest>,
+) -> impl IntoResponse {
+    let store = state.store.lock().unwrap();
+    let Some(session) = store.get(&game_id) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let Some(round) = session.rounds.iter().find(|r| r.round_id == request.round_id) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let correct = round.language == request.language;
+    Json(GuessResponse {
+        correct,
+        correct_language: round.language.clone(),
+    }).into_response()
 }
 
 #[cfg(test)]
@@ -83,8 +103,33 @@ mod tests {
         };
         let app = Router::new()
             .route("/api/game", get(get_game))
+            .route("/api/game/:game_id/guess", axum::routing::post(post_guess))
             .with_state(state);
         (app, store)
+    }
+
+    fn make_session(language: Language, text: &str) -> (GameSession, Uuid, Uuid) {
+        let game_id = Uuid::new_v4();
+        let round_id = Uuid::new_v4();
+        let session = GameSession {
+            game_id,
+            rounds: vec![Round { round_id, text: text.to_string(), language }],
+        };
+        (session, game_id, round_id)
+    }
+
+    fn post_request(uri: &str, body: serde_json::Value) -> Request<axum::body::Body> {
+        Request::builder()
+            .method("POST")
+            .uri(uri)
+            .header("content-type", "application/json")
+            .body(axum::body::Body::from(body.to_string()))
+            .unwrap()
+    }
+
+    async fn parse_guess_response(response: axum::response::Response) -> common::api::GuessResponse {
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        serde_json::from_slice(&bytes).unwrap()
     }
 
     fn get_request(uri: &str) -> Request<axum::body::Body> {
@@ -166,5 +211,72 @@ mod tests {
         let (app, _store) = make_app(MockWikipediaClient::failing());
         let response = app.oneshot(get_request("/api/game")).await.unwrap();
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    // --- POST /api/game/:game_id/guess ---
+
+    #[tokio::test]
+    async fn correct_guess_returns_200_with_correct_true() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, round_id) = make_session(Language::French, "Bonjour.");
+        store.lock().unwrap().insert(game_id, session);
+
+        let body = serde_json::json!({ "round_id": round_id, "language": "French" });
+        let response = app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let result = parse_guess_response(response).await;
+        assert!(result.correct);
+        assert_eq!(result.correct_language, Language::French);
+    }
+
+    #[tokio::test]
+    async fn wrong_guess_returns_200_with_correct_false() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, round_id) = make_session(Language::French, "Bonjour.");
+        store.lock().unwrap().insert(game_id, session);
+
+        let body = serde_json::json!({ "round_id": round_id, "language": "English" });
+        let response = app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let result = parse_guess_response(response).await;
+        assert!(!result.correct);
+        assert_eq!(result.correct_language, Language::French);
+    }
+
+    #[tokio::test]
+    async fn unknown_game_id_returns_404() {
+        let (app, _store) = make_app(MockWikipediaClient::failing());
+        let body = serde_json::json!({ "round_id": Uuid::new_v4(), "language": "French" });
+        let response = app.oneshot(post_request(&format!("/api/game/{}/guess", Uuid::new_v4()), body)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn unknown_round_id_returns_404() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, _) = make_session(Language::French, "Bonjour.");
+        store.lock().unwrap().insert(game_id, session);
+
+        let body = serde_json::json!({ "round_id": Uuid::new_v4(), "language": "French" });
+        let response = app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn guessing_same_round_twice_returns_valid_response() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, round_id) = make_session(Language::Japanese, "日本語。");
+        store.lock().unwrap().insert(game_id, session);
+
+        let body = serde_json::json!({ "round_id": round_id, "language": "Japanese" });
+        let uri = format!("/api/game/{game_id}/guess");
+
+        let first = app.clone().oneshot(post_request(&uri, body.clone())).await.unwrap();
+        assert_eq!(first.status(), StatusCode::OK);
+
+        let second = app.oneshot(post_request(&uri, body)).await.unwrap();
+        assert_eq!(second.status(), StatusCode::OK);
     }
 }
