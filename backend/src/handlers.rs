@@ -13,6 +13,7 @@ use common::api::RoundView;
 use common::types::{GameMode, Language};
 use crate::game::{GameSession, Round, session_to_view};
 use crate::wikipedia::{fetch_article, WikipediaClient};
+use futures::future::join_all;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -42,14 +43,14 @@ pub async fn get_game(
     rand::seq::SliceRandom::shuffle(languages.as_mut_slice(), &mut rand::thread_rng());
     let languages: Vec<Language> = languages.into_iter().take(5).collect();
 
+    let results = join_all(
+        languages.iter().map(|lang| fetch_article(lang, state.wikipedia.as_ref()))
+    ).await;
+
     let mut rounds = Vec::new();
-    for lang in languages {
-        match fetch_article(&lang, state.wikipedia.as_ref()).await {
-            Ok(text) => rounds.push(Round {
-                round_id: Uuid::new_v4(),
-                text,
-                language: lang,
-            }),
+    for (lang, result) in languages.into_iter().zip(results) {
+        match result {
+            Ok(text) => rounds.push(Round { round_id: Uuid::new_v4(), text, language: lang }),
             Err(_) => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
         }
     }
@@ -252,6 +253,70 @@ mod tests {
         let (app, _store) = make_app(MockWikipediaClient::failing());
         let response = app.oneshot(get_request("/api/game")).await.unwrap();
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[tokio::test]
+    async fn single_fetch_failure_among_five_returns_503() {
+        // First fetch fails, rest succeed — whole game should still be 503
+        struct OneFailsClient {
+            failed: Arc<std::sync::atomic::AtomicBool>,
+        }
+
+        #[async_trait]
+        impl WikipediaClient for OneFailsClient {
+            async fn fetch_summary(&self, _url: &str) -> Result<String, FetchError> {
+                if !self.failed.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                    Err(FetchError::Http("simulated failure".into()))
+                } else {
+                    Ok(sample_text().to_string())
+                }
+            }
+        }
+
+        let store = Arc::new(Mutex::new(HashMap::new()));
+        let state = AppState {
+            store: Arc::clone(&store),
+            wikipedia: Arc::new(OneFailsClient {
+                failed: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            }),
+        };
+        let app = Router::new()
+            .route("/api/game", get(get_game))
+            .with_state(state);
+
+        let response = app.oneshot(get_request("/api/game")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[tokio::test]
+    async fn fetches_complete_in_parallel() {
+        // Each fetch sleeps 50ms. Sequential would take 250ms+, parallel takes ~50ms.
+        struct SlowClient;
+
+        #[async_trait]
+        impl WikipediaClient for SlowClient {
+            async fn fetch_summary(&self, _url: &str) -> Result<String, FetchError> {
+                tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                Ok(sample_text().to_string())
+            }
+        }
+
+        let store = Arc::new(Mutex::new(HashMap::new()));
+        let state = AppState {
+            store: Arc::clone(&store),
+            wikipedia: Arc::new(SlowClient),
+        };
+        let app = Router::new()
+            .route("/api/game", get(get_game))
+            .with_state(state);
+
+        let start = tokio::time::Instant::now();
+        let response = app.oneshot(get_request("/api/game")).await.unwrap();
+        let elapsed = start.elapsed();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(elapsed.as_millis() < 200,
+            "Expected parallel fetch < 200ms, took {}ms", elapsed.as_millis());
     }
 
     // --- POST /api/game/:game_id/guess ---
