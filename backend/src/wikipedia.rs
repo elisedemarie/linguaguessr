@@ -82,6 +82,51 @@ pub fn wiki_base_url(lang: &Language) -> String {
         Language::Romanian   => "ro",
         Language::Czech      => "cs",
         Language::Hungarian  => "hu",
+        Language::Afrikaans  => "af",
+        Language::Albanian   => "sq",
+        Language::Amharic    => "am",
+        Language::Armenian   => "hy",
+        Language::Azerbaijani => "az",
+        Language::Basque     => "eu",
+        Language::Belarusian => "be",
+        Language::Bulgarian  => "bg",
+        Language::Burmese    => "my",
+        Language::Catalan    => "ca",
+        Language::Croatian   => "hr",
+        Language::Danish     => "da",
+        Language::Estonian   => "et",
+        Language::Finnish    => "fi",
+        Language::Galician   => "gl",
+        Language::Georgian   => "ka",
+        Language::Gujarati   => "gu",
+        Language::Hausa      => "ha",
+        Language::Hebrew     => "he",
+        Language::Icelandic  => "is",
+        Language::Irish      => "ga",
+        Language::Kannada    => "kn",
+        Language::Kazakh     => "kk",
+        Language::Khmer      => "km",
+        Language::Latvian    => "lv",
+        Language::Lithuanian => "lt",
+        Language::Macedonian => "mk",
+        Language::Malay      => "ms",
+        Language::Malayalam  => "ml",
+        Language::Mongolian  => "mn",
+        Language::Nepali     => "ne",
+        Language::Norwegian  => "no",
+        Language::Odia       => "or",
+        Language::Punjabi    => "pa",
+        Language::Serbian    => "sr",
+        Language::Sinhala    => "si",
+        Language::Slovak     => "sk",
+        Language::Slovenian  => "sl",
+        Language::Somali     => "so",
+        Language::Swedish    => "sv",
+        Language::Tagalog    => "tl",
+        Language::Uzbek      => "uz",
+        Language::Welsh      => "cy",
+        Language::Yoruba     => "yo",
+        Language::Zulu       => "zu",
     };
     format!("https://{}.wikipedia.org", code)
 }
@@ -179,7 +224,52 @@ mod tests {
     #[test] fn greek_url()      { assert_eq!(wiki_base_url(&Language::Greek),      "https://el.wikipedia.org"); }
     #[test] fn romanian_url()   { assert_eq!(wiki_base_url(&Language::Romanian),   "https://ro.wikipedia.org"); }
     #[test] fn czech_url()      { assert_eq!(wiki_base_url(&Language::Czech),      "https://cs.wikipedia.org"); }
-    #[test] fn hungarian_url()  { assert_eq!(wiki_base_url(&Language::Hungarian),  "https://hu.wikipedia.org"); }
+    #[test] fn hungarian_url()    { assert_eq!(wiki_base_url(&Language::Hungarian),    "https://hu.wikipedia.org"); }
+    #[test] fn afrikaans_url()   { assert_eq!(wiki_base_url(&Language::Afrikaans),   "https://af.wikipedia.org"); }
+    #[test] fn albanian_url()    { assert_eq!(wiki_base_url(&Language::Albanian),    "https://sq.wikipedia.org"); }
+    #[test] fn amharic_url()     { assert_eq!(wiki_base_url(&Language::Amharic),     "https://am.wikipedia.org"); }
+    #[test] fn armenian_url()    { assert_eq!(wiki_base_url(&Language::Armenian),    "https://hy.wikipedia.org"); }
+    #[test] fn azerbaijani_url() { assert_eq!(wiki_base_url(&Language::Azerbaijani), "https://az.wikipedia.org"); }
+    #[test] fn basque_url()      { assert_eq!(wiki_base_url(&Language::Basque),      "https://eu.wikipedia.org"); }
+    #[test] fn belarusian_url()  { assert_eq!(wiki_base_url(&Language::Belarusian),  "https://be.wikipedia.org"); }
+    #[test] fn bulgarian_url()   { assert_eq!(wiki_base_url(&Language::Bulgarian),   "https://bg.wikipedia.org"); }
+    #[test] fn burmese_url()     { assert_eq!(wiki_base_url(&Language::Burmese),     "https://my.wikipedia.org"); }
+    #[test] fn catalan_url()     { assert_eq!(wiki_base_url(&Language::Catalan),     "https://ca.wikipedia.org"); }
+    #[test] fn croatian_url()    { assert_eq!(wiki_base_url(&Language::Croatian),    "https://hr.wikipedia.org"); }
+    #[test] fn danish_url()      { assert_eq!(wiki_base_url(&Language::Danish),      "https://da.wikipedia.org"); }
+    #[test] fn estonian_url()    { assert_eq!(wiki_base_url(&Language::Estonian),    "https://et.wikipedia.org"); }
+    #[test] fn finnish_url()     { assert_eq!(wiki_base_url(&Language::Finnish),     "https://fi.wikipedia.org"); }
+    #[test] fn galician_url()    { assert_eq!(wiki_base_url(&Language::Galician),    "https://gl.wikipedia.org"); }
+    #[test] fn georgian_url()    { assert_eq!(wiki_base_url(&Language::Georgian),    "https://ka.wikipedia.org"); }
+    #[test] fn gujarati_url()    { assert_eq!(wiki_base_url(&Language::Gujarati),    "https://gu.wikipedia.org"); }
+    #[test] fn hausa_url()       { assert_eq!(wiki_base_url(&Language::Hausa),       "https://ha.wikipedia.org"); }
+    #[test] fn hebrew_url()      { assert_eq!(wiki_base_url(&Language::Hebrew),      "https://he.wikipedia.org"); }
+    #[test] fn icelandic_url()   { assert_eq!(wiki_base_url(&Language::Icelandic),   "https://is.wikipedia.org"); }
+    #[test] fn irish_url()       { assert_eq!(wiki_base_url(&Language::Irish),       "https://ga.wikipedia.org"); }
+    #[test] fn kannada_url()     { assert_eq!(wiki_base_url(&Language::Kannada),     "https://kn.wikipedia.org"); }
+    #[test] fn kazakh_url()      { assert_eq!(wiki_base_url(&Language::Kazakh),      "https://kk.wikipedia.org"); }
+    #[test] fn khmer_url()       { assert_eq!(wiki_base_url(&Language::Khmer),       "https://km.wikipedia.org"); }
+    #[test] fn latvian_url()     { assert_eq!(wiki_base_url(&Language::Latvian),     "https://lv.wikipedia.org"); }
+    #[test] fn lithuanian_url()  { assert_eq!(wiki_base_url(&Language::Lithuanian),  "https://lt.wikipedia.org"); }
+    #[test] fn macedonian_url()  { assert_eq!(wiki_base_url(&Language::Macedonian),  "https://mk.wikipedia.org"); }
+    #[test] fn malay_url()       { assert_eq!(wiki_base_url(&Language::Malay),       "https://ms.wikipedia.org"); }
+    #[test] fn malayalam_url()   { assert_eq!(wiki_base_url(&Language::Malayalam),   "https://ml.wikipedia.org"); }
+    #[test] fn mongolian_url()   { assert_eq!(wiki_base_url(&Language::Mongolian),   "https://mn.wikipedia.org"); }
+    #[test] fn nepali_url()      { assert_eq!(wiki_base_url(&Language::Nepali),      "https://ne.wikipedia.org"); }
+    #[test] fn norwegian_url()   { assert_eq!(wiki_base_url(&Language::Norwegian),   "https://no.wikipedia.org"); }
+    #[test] fn odia_url()        { assert_eq!(wiki_base_url(&Language::Odia),        "https://or.wikipedia.org"); }
+    #[test] fn punjabi_url()     { assert_eq!(wiki_base_url(&Language::Punjabi),     "https://pa.wikipedia.org"); }
+    #[test] fn serbian_url()     { assert_eq!(wiki_base_url(&Language::Serbian),     "https://sr.wikipedia.org"); }
+    #[test] fn sinhala_url()     { assert_eq!(wiki_base_url(&Language::Sinhala),     "https://si.wikipedia.org"); }
+    #[test] fn slovak_url()      { assert_eq!(wiki_base_url(&Language::Slovak),      "https://sk.wikipedia.org"); }
+    #[test] fn slovenian_url()   { assert_eq!(wiki_base_url(&Language::Slovenian),   "https://sl.wikipedia.org"); }
+    #[test] fn somali_url()      { assert_eq!(wiki_base_url(&Language::Somali),      "https://so.wikipedia.org"); }
+    #[test] fn swedish_url()     { assert_eq!(wiki_base_url(&Language::Swedish),     "https://sv.wikipedia.org"); }
+    #[test] fn tagalog_url()     { assert_eq!(wiki_base_url(&Language::Tagalog),     "https://tl.wikipedia.org"); }
+    #[test] fn uzbek_url()       { assert_eq!(wiki_base_url(&Language::Uzbek),       "https://uz.wikipedia.org"); }
+    #[test] fn welsh_url()       { assert_eq!(wiki_base_url(&Language::Welsh),       "https://cy.wikipedia.org"); }
+    #[test] fn yoruba_url()      { assert_eq!(wiki_base_url(&Language::Yoruba),      "https://yo.wikipedia.org"); }
+    #[test] fn zulu_url()        { assert_eq!(wiki_base_url(&Language::Zulu),        "https://zu.wikipedia.org"); }
 
     fn long_multibyte_extract() -> String {
         // 599 ASCII bytes then Thai chars — byte 600 lands inside a 3-byte Thai char, triggering the panic

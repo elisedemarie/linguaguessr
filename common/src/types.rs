@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Language {
+    // original 30
     English,
     French,
     Japanese,
@@ -32,6 +33,52 @@ pub enum Language {
     Romanian,
     Czech,
     Hungarian,
+    // new 45
+    Afrikaans,
+    Albanian,
+    Amharic,
+    Armenian,
+    Azerbaijani,
+    Basque,
+    Belarusian,
+    Bulgarian,
+    Burmese,
+    Catalan,
+    Croatian,
+    Danish,
+    Estonian,
+    Finnish,
+    Galician,
+    Georgian,
+    Gujarati,
+    Hausa,
+    Hebrew,
+    Icelandic,
+    Irish,
+    Kannada,
+    Kazakh,
+    Khmer,
+    Latvian,
+    Lithuanian,
+    Macedonian,
+    Malay,
+    Malayalam,
+    Mongolian,
+    Nepali,
+    Norwegian,
+    Odia,
+    Punjabi,
+    Serbian,
+    Sinhala,
+    Slovak,
+    Slovenian,
+    Somali,
+    Swedish,
+    Tagalog,
+    Uzbek,
+    Welsh,
+    Yoruba,
+    Zulu,
 }
 
 impl Language {
@@ -67,6 +114,51 @@ impl Language {
             Language::Romanian,
             Language::Czech,
             Language::Hungarian,
+            Language::Afrikaans,
+            Language::Albanian,
+            Language::Amharic,
+            Language::Armenian,
+            Language::Azerbaijani,
+            Language::Basque,
+            Language::Belarusian,
+            Language::Bulgarian,
+            Language::Burmese,
+            Language::Catalan,
+            Language::Croatian,
+            Language::Danish,
+            Language::Estonian,
+            Language::Finnish,
+            Language::Galician,
+            Language::Georgian,
+            Language::Gujarati,
+            Language::Hausa,
+            Language::Hebrew,
+            Language::Icelandic,
+            Language::Irish,
+            Language::Kannada,
+            Language::Kazakh,
+            Language::Khmer,
+            Language::Latvian,
+            Language::Lithuanian,
+            Language::Macedonian,
+            Language::Malay,
+            Language::Malayalam,
+            Language::Mongolian,
+            Language::Nepali,
+            Language::Norwegian,
+            Language::Odia,
+            Language::Punjabi,
+            Language::Serbian,
+            Language::Sinhala,
+            Language::Slovak,
+            Language::Slovenian,
+            Language::Somali,
+            Language::Swedish,
+            Language::Tagalog,
+            Language::Uzbek,
+            Language::Welsh,
+            Language::Yoruba,
+            Language::Zulu,
         ]
     }
 
@@ -102,6 +194,51 @@ impl Language {
             Language::Romanian   => &["ro", "romanian", "română", "romana"],
             Language::Czech      => &["cs", "czech", "čeština", "cestina"],
             Language::Hungarian  => &["hu", "hungarian", "magyar"],
+            Language::Afrikaans  => &["af", "afrikaans"],
+            Language::Albanian   => &["sq", "albanian", "shqip"],
+            Language::Amharic    => &["am", "amharic", "አማርኛ"],
+            Language::Armenian   => &["hy", "armenian", "հայերեն"],
+            Language::Azerbaijani => &["az", "azerbaijani", "azərbaycan"],
+            Language::Basque     => &["eu", "basque", "euskera"],
+            Language::Belarusian => &["be", "belarusian", "беларуская"],
+            Language::Bulgarian  => &["bg", "bulgarian", "български"],
+            Language::Burmese    => &["my", "burmese", "myanmar", "မြန်မာဘာသာ"],
+            Language::Catalan    => &["ca", "catalan", "català"],
+            Language::Croatian   => &["hr", "croatian", "hrvatski"],
+            Language::Danish     => &["da", "danish", "dansk"],
+            Language::Estonian   => &["et", "estonian", "eesti"],
+            Language::Finnish    => &["fi", "finnish", "suomi"],
+            Language::Galician   => &["gl", "galician", "galego"],
+            Language::Georgian   => &["ka", "georgian", "ქართული"],
+            Language::Gujarati   => &["gu", "gujarati", "ગુજરાતી"],
+            Language::Hausa      => &["ha", "hausa"],
+            Language::Hebrew     => &["he", "hebrew", "עברית"],
+            Language::Icelandic  => &["is", "icelandic", "íslenska"],
+            Language::Irish      => &["ga", "irish", "gaeilge"],
+            Language::Kannada    => &["kn", "kannada", "ಕನ್ನಡ"],
+            Language::Kazakh     => &["kk", "kazakh", "қазақ"],
+            Language::Khmer      => &["km", "khmer", "ខ្មែរ"],
+            Language::Latvian    => &["lv", "latvian", "latviešu"],
+            Language::Lithuanian => &["lt", "lithuanian", "lietuvių"],
+            Language::Macedonian => &["mk", "macedonian", "македонски"],
+            Language::Malay      => &["ms", "malay", "melayu"],
+            Language::Malayalam  => &["ml", "malayalam", "മലയാളം"],
+            Language::Mongolian  => &["mn", "mongolian", "монгол"],
+            Language::Nepali     => &["ne", "nepali", "नेपाली"],
+            Language::Norwegian  => &["no", "norwegian", "norsk"],
+            Language::Odia       => &["or", "odia", "oriya", "ଓଡ଼ିଆ"],
+            Language::Punjabi    => &["pa", "punjabi", "ਪੰਜਾਬੀ"],
+            Language::Serbian    => &["sr", "serbian", "српски"],
+            Language::Sinhala    => &["si", "sinhala", "sinhalese", "සිංහල"],
+            Language::Slovak     => &["sk", "slovak", "slovenčina"],
+            Language::Slovenian  => &["sl", "slovenian", "slovenščina"],
+            Language::Somali     => &["so", "somali", "soomaali"],
+            Language::Swedish    => &["sv", "swedish", "svenska"],
+            Language::Tagalog    => &["tl", "tagalog", "filipino"],
+            Language::Uzbek      => &["uz", "uzbek"],
+            Language::Welsh      => &["cy", "welsh", "cymraeg"],
+            Language::Yoruba     => &["yo", "yoruba"],
+            Language::Zulu       => &["zu", "zulu"],
         }
     }
 
@@ -137,6 +274,51 @@ impl Language {
             Language::Romanian   => "Romanian (RO)",
             Language::Czech      => "Czech (CS)",
             Language::Hungarian  => "Hungarian (HU)",
+            Language::Afrikaans  => "Afrikaans (AF)",
+            Language::Albanian   => "Albanian (SQ)",
+            Language::Amharic    => "Amharic (AM)",
+            Language::Armenian   => "Armenian (HY)",
+            Language::Azerbaijani => "Azerbaijani (AZ)",
+            Language::Basque     => "Basque (EU)",
+            Language::Belarusian => "Belarusian (BE)",
+            Language::Bulgarian  => "Bulgarian (BG)",
+            Language::Burmese    => "Burmese (MY)",
+            Language::Catalan    => "Catalan (CA)",
+            Language::Croatian   => "Croatian (HR)",
+            Language::Danish     => "Danish (DA)",
+            Language::Estonian   => "Estonian (ET)",
+            Language::Finnish    => "Finnish (FI)",
+            Language::Galician   => "Galician (GL)",
+            Language::Georgian   => "Georgian (KA)",
+            Language::Gujarati   => "Gujarati (GU)",
+            Language::Hausa      => "Hausa (HA)",
+            Language::Hebrew     => "Hebrew (HE)",
+            Language::Icelandic  => "Icelandic (IS)",
+            Language::Irish      => "Irish (GA)",
+            Language::Kannada    => "Kannada (KN)",
+            Language::Kazakh     => "Kazakh (KK)",
+            Language::Khmer      => "Khmer (KM)",
+            Language::Latvian    => "Latvian (LV)",
+            Language::Lithuanian => "Lithuanian (LT)",
+            Language::Macedonian => "Macedonian (MK)",
+            Language::Malay      => "Malay (MS)",
+            Language::Malayalam  => "Malayalam (ML)",
+            Language::Mongolian  => "Mongolian (MN)",
+            Language::Nepali     => "Nepali (NE)",
+            Language::Norwegian  => "Norwegian (NO)",
+            Language::Odia       => "Odia (OR)",
+            Language::Punjabi    => "Punjabi (PA)",
+            Language::Serbian    => "Serbian (SR)",
+            Language::Sinhala    => "Sinhala (SI)",
+            Language::Slovak     => "Slovak (SK)",
+            Language::Slovenian  => "Slovenian (SL)",
+            Language::Somali     => "Somali (SO)",
+            Language::Swedish    => "Swedish (SV)",
+            Language::Tagalog    => "Tagalog (TL)",
+            Language::Uzbek      => "Uzbek (UZ)",
+            Language::Welsh      => "Welsh (CY)",
+            Language::Yoruba     => "Yoruba (YO)",
+            Language::Zulu       => "Zulu (ZU)",
         }
     }
 
@@ -165,29 +347,33 @@ mod tests {
     #[test]
     fn empty_query_returns_all_languages() {
         let result = Language::suggestions("");
-        assert_eq!(result.len(), 30);
+        assert_eq!(result.len(), 75);
     }
 
     #[test]
-    fn empty_query_first_result_is_arabic() {
+    fn empty_query_first_result_is_afrikaans() {
         let result = Language::suggestions("");
-        assert_eq!(result[0], Language::Arabic);
+        assert_eq!(result[0], Language::Afrikaans);
     }
 
     #[test]
-    fn empty_query_last_result_is_vietnamese() {
+    fn empty_query_last_result_is_zulu() {
         let result = Language::suggestions("");
-        assert_eq!(result[result.len() - 1], Language::Vietnamese);
+        assert_eq!(result[result.len() - 1], Language::Zulu);
     }
 
     #[test]
     fn filtered_results_are_also_sorted() {
         let result = Language::suggestions("p");
-        // Persian (FA), Polish (PL), Portuguese (PT) — alphabetical
-        assert_eq!(result, vec![Language::Persian, Language::Polish, Language::Portuguese]);
+        assert_eq!(result, vec![
+            Language::Persian,
+            Language::Polish,
+            Language::Portuguese,
+            Language::Punjabi,
+        ]);
     }
 
-    // --- original 5 languages ---
+    // --- original 30 languages ---
 
     #[test]
     fn en_alias_returns_english() {
@@ -207,11 +393,6 @@ mod tests {
     #[test]
     fn french_alias_returns_french() {
         assert_eq!(Language::suggestions("french"), vec![Language::French]);
-    }
-
-    #[test]
-    fn francais_alias_returns_french() {
-        assert_eq!(Language::suggestions("francais"), vec![Language::French]);
     }
 
     #[test]
@@ -235,8 +416,9 @@ mod tests {
     }
 
     #[test]
-    fn ar_alias_returns_arabic() {
-        assert_eq!(Language::suggestions("ar"), vec![Language::Arabic]);
+    fn ar_alias_returns_arabic_and_armenian() {
+        // "armenian" also starts with "ar"
+        assert_eq!(Language::suggestions("ar"), vec![Language::Arabic, Language::Armenian]);
     }
 
     #[test]
@@ -264,11 +446,10 @@ mod tests {
         assert_eq!(Language::suggestions("рус"), vec![Language::Russian]);
     }
 
-    // --- new languages: code alias ---
-
     #[test]
-    fn es_alias_returns_spanish() {
-        assert_eq!(Language::suggestions("es"), vec![Language::Spanish]);
+    fn es_alias_returns_estonian_and_spanish() {
+        // "estonian" also starts with "es"
+        assert_eq!(Language::suggestions("es"), vec![Language::Estonian, Language::Spanish]);
     }
 
     #[test]
@@ -387,8 +568,9 @@ mod tests {
     }
 
     #[test]
-    fn ta_alias_returns_tamil() {
-        assert_eq!(Language::suggestions("ta"), vec![Language::Tamil]);
+    fn ta_alias_returns_tagalog_and_tamil() {
+        // "tagalog" also starts with "ta"
+        assert_eq!(Language::suggestions("ta"), vec![Language::Tagalog, Language::Tamil]);
     }
 
     #[test]
@@ -437,8 +619,9 @@ mod tests {
     }
 
     #[test]
-    fn sw_alias_returns_swahili() {
-        assert_eq!(Language::suggestions("sw"), vec![Language::Swahili]);
+    fn sw_alias_returns_swahili_and_swedish() {
+        // "swedish" also starts with "sw"
+        assert_eq!(Language::suggestions("sw"), vec![Language::Swahili, Language::Swedish]);
     }
 
     #[test]
@@ -516,6 +699,562 @@ mod tests {
         assert_eq!(Language::suggestions("hungarian"), vec![Language::Hungarian]);
     }
 
+    // --- new 45 languages ---
+
+    #[test]
+    fn af_alias_returns_afrikaans() {
+        assert_eq!(Language::suggestions("af"), vec![Language::Afrikaans]);
+    }
+    #[test]
+    fn afrikaans_alias_returns_afrikaans() {
+        assert_eq!(Language::suggestions("afrikaans"), vec![Language::Afrikaans]);
+    }
+    #[test]
+    fn afrikaans_label() { assert_eq!(Language::Afrikaans.label(), "Afrikaans (AF)"); }
+
+    #[test]
+    fn sq_alias_returns_albanian() {
+        assert_eq!(Language::suggestions("sq"), vec![Language::Albanian]);
+    }
+    #[test]
+    fn albanian_alias_returns_albanian() {
+        assert_eq!(Language::suggestions("albanian"), vec![Language::Albanian]);
+    }
+    #[test]
+    fn albanian_label() { assert_eq!(Language::Albanian.label(), "Albanian (SQ)"); }
+
+    #[test]
+    fn am_alias_returns_amharic() {
+        assert_eq!(Language::suggestions("am"), vec![Language::Amharic]);
+    }
+    #[test]
+    fn amharic_alias_returns_amharic() {
+        assert_eq!(Language::suggestions("amharic"), vec![Language::Amharic]);
+    }
+    #[test]
+    fn amharic_script_prefix_returns_amharic() {
+        assert_eq!(Language::suggestions("አማ"), vec![Language::Amharic]);
+    }
+    #[test]
+    fn amharic_label() { assert_eq!(Language::Amharic.label(), "Amharic (AM)"); }
+
+    #[test]
+    fn hy_alias_returns_armenian() {
+        assert_eq!(Language::suggestions("hy"), vec![Language::Armenian]);
+    }
+    #[test]
+    fn armenian_alias_returns_armenian() {
+        assert_eq!(Language::suggestions("armenian"), vec![Language::Armenian]);
+    }
+    #[test]
+    fn armenian_script_prefix_returns_armenian() {
+        assert_eq!(Language::suggestions("հայ"), vec![Language::Armenian]);
+    }
+    #[test]
+    fn armenian_label() { assert_eq!(Language::Armenian.label(), "Armenian (HY)"); }
+
+    #[test]
+    fn az_alias_returns_azerbaijani() {
+        assert_eq!(Language::suggestions("az"), vec![Language::Azerbaijani]);
+    }
+    #[test]
+    fn azerbaijani_alias_returns_azerbaijani() {
+        assert_eq!(Language::suggestions("azerbaijani"), vec![Language::Azerbaijani]);
+    }
+    #[test]
+    fn azerbaijani_label() { assert_eq!(Language::Azerbaijani.label(), "Azerbaijani (AZ)"); }
+
+    #[test]
+    fn eu_alias_returns_basque() {
+        assert_eq!(Language::suggestions("eu"), vec![Language::Basque]);
+    }
+    #[test]
+    fn basque_alias_returns_basque() {
+        assert_eq!(Language::suggestions("basque"), vec![Language::Basque]);
+    }
+    #[test]
+    fn basque_label() { assert_eq!(Language::Basque.label(), "Basque (EU)"); }
+
+    #[test]
+    fn be_alias_returns_belarusian_and_bengali() {
+        // "bengali" also starts with "be"
+        assert_eq!(Language::suggestions("be"), vec![Language::Belarusian, Language::Bengali]);
+    }
+    #[test]
+    fn belarusian_alias_returns_belarusian() {
+        assert_eq!(Language::suggestions("belarusian"), vec![Language::Belarusian]);
+    }
+    #[test]
+    fn belarusian_script_prefix_returns_belarusian() {
+        assert_eq!(Language::suggestions("бела"), vec![Language::Belarusian]);
+    }
+    #[test]
+    fn belarusian_label() { assert_eq!(Language::Belarusian.label(), "Belarusian (BE)"); }
+
+    #[test]
+    fn bg_alias_returns_bulgarian() {
+        assert_eq!(Language::suggestions("bg"), vec![Language::Bulgarian]);
+    }
+    #[test]
+    fn bulgarian_alias_returns_bulgarian() {
+        assert_eq!(Language::suggestions("bulgarian"), vec![Language::Bulgarian]);
+    }
+    #[test]
+    fn bulgarian_script_prefix_returns_bulgarian() {
+        assert_eq!(Language::suggestions("бъл"), vec![Language::Bulgarian]);
+    }
+    #[test]
+    fn bulgarian_label() { assert_eq!(Language::Bulgarian.label(), "Bulgarian (BG)"); }
+
+    #[test]
+    fn my_alias_returns_burmese() {
+        assert_eq!(Language::suggestions("my"), vec![Language::Burmese]);
+    }
+    #[test]
+    fn burmese_alias_returns_burmese() {
+        assert_eq!(Language::suggestions("burmese"), vec![Language::Burmese]);
+    }
+    #[test]
+    fn burmese_script_prefix_returns_burmese() {
+        assert_eq!(Language::suggestions("မြန်"), vec![Language::Burmese]);
+    }
+    #[test]
+    fn burmese_label() { assert_eq!(Language::Burmese.label(), "Burmese (MY)"); }
+
+    #[test]
+    fn ca_alias_returns_catalan() {
+        assert_eq!(Language::suggestions("ca"), vec![Language::Catalan]);
+    }
+    #[test]
+    fn catalan_alias_returns_catalan() {
+        assert_eq!(Language::suggestions("catalan"), vec![Language::Catalan]);
+    }
+    #[test]
+    fn catalan_label() { assert_eq!(Language::Catalan.label(), "Catalan (CA)"); }
+
+    #[test]
+    fn hr_alias_returns_croatian() {
+        assert_eq!(Language::suggestions("hr"), vec![Language::Croatian]);
+    }
+    #[test]
+    fn croatian_alias_returns_croatian() {
+        assert_eq!(Language::suggestions("croatian"), vec![Language::Croatian]);
+    }
+    #[test]
+    fn croatian_label() { assert_eq!(Language::Croatian.label(), "Croatian (HR)"); }
+
+    #[test]
+    fn da_alias_returns_danish() {
+        assert_eq!(Language::suggestions("da"), vec![Language::Danish]);
+    }
+    #[test]
+    fn danish_alias_returns_danish() {
+        assert_eq!(Language::suggestions("danish"), vec![Language::Danish]);
+    }
+    #[test]
+    fn danish_label() { assert_eq!(Language::Danish.label(), "Danish (DA)"); }
+
+    #[test]
+    fn et_alias_returns_estonian() {
+        assert_eq!(Language::suggestions("et"), vec![Language::Estonian]);
+    }
+    #[test]
+    fn estonian_alias_returns_estonian() {
+        assert_eq!(Language::suggestions("estonian"), vec![Language::Estonian]);
+    }
+    #[test]
+    fn estonian_label() { assert_eq!(Language::Estonian.label(), "Estonian (ET)"); }
+
+    #[test]
+    fn fi_alias_returns_finnish_and_tagalog() {
+        // "filipino" (Tagalog alias) also starts with "fi"
+        assert_eq!(Language::suggestions("fi"), vec![Language::Finnish, Language::Tagalog]);
+    }
+    #[test]
+    fn finnish_alias_returns_finnish() {
+        assert_eq!(Language::suggestions("finnish"), vec![Language::Finnish]);
+    }
+    #[test]
+    fn finnish_label() { assert_eq!(Language::Finnish.label(), "Finnish (FI)"); }
+
+    #[test]
+    fn gl_alias_returns_galician() {
+        assert_eq!(Language::suggestions("gl"), vec![Language::Galician]);
+    }
+    #[test]
+    fn galician_alias_returns_galician() {
+        assert_eq!(Language::suggestions("galician"), vec![Language::Galician]);
+    }
+    #[test]
+    fn galician_label() { assert_eq!(Language::Galician.label(), "Galician (GL)"); }
+
+    #[test]
+    fn ka_alias_returns_georgian_kannada_kazakh() {
+        // "kannada" and "kazakh" also start with "ka"
+        assert_eq!(Language::suggestions("ka"), vec![Language::Georgian, Language::Kannada, Language::Kazakh]);
+    }
+    #[test]
+    fn georgian_alias_returns_georgian() {
+        assert_eq!(Language::suggestions("georgian"), vec![Language::Georgian]);
+    }
+    #[test]
+    fn georgian_script_prefix_returns_georgian() {
+        assert_eq!(Language::suggestions("ქართ"), vec![Language::Georgian]);
+    }
+    #[test]
+    fn georgian_label() { assert_eq!(Language::Georgian.label(), "Georgian (KA)"); }
+
+    #[test]
+    fn gu_alias_returns_gujarati() {
+        assert_eq!(Language::suggestions("gu"), vec![Language::Gujarati]);
+    }
+    #[test]
+    fn gujarati_alias_returns_gujarati() {
+        assert_eq!(Language::suggestions("gujarati"), vec![Language::Gujarati]);
+    }
+    #[test]
+    fn gujarati_script_prefix_returns_gujarati() {
+        assert_eq!(Language::suggestions("ગુજ"), vec![Language::Gujarati]);
+    }
+    #[test]
+    fn gujarati_label() { assert_eq!(Language::Gujarati.label(), "Gujarati (GU)"); }
+
+    #[test]
+    fn ha_alias_returns_hausa() {
+        assert_eq!(Language::suggestions("ha"), vec![Language::Hausa]);
+    }
+    #[test]
+    fn hausa_alias_returns_hausa() {
+        assert_eq!(Language::suggestions("hausa"), vec![Language::Hausa]);
+    }
+    #[test]
+    fn hausa_label() { assert_eq!(Language::Hausa.label(), "Hausa (HA)"); }
+
+    #[test]
+    fn he_alias_returns_hebrew() {
+        assert_eq!(Language::suggestions("he"), vec![Language::Hebrew]);
+    }
+    #[test]
+    fn hebrew_alias_returns_hebrew() {
+        assert_eq!(Language::suggestions("hebrew"), vec![Language::Hebrew]);
+    }
+    #[test]
+    fn hebrew_script_prefix_returns_hebrew() {
+        assert_eq!(Language::suggestions("עבר"), vec![Language::Hebrew]);
+    }
+    #[test]
+    fn hebrew_label() { assert_eq!(Language::Hebrew.label(), "Hebrew (HE)"); }
+
+    #[test]
+    fn is_alias_returns_icelandic() {
+        assert_eq!(Language::suggestions("is"), vec![Language::Icelandic]);
+    }
+    #[test]
+    fn icelandic_alias_returns_icelandic() {
+        assert_eq!(Language::suggestions("icelandic"), vec![Language::Icelandic]);
+    }
+    #[test]
+    fn icelandic_label() { assert_eq!(Language::Icelandic.label(), "Icelandic (IS)"); }
+
+    #[test]
+    fn ga_alias_returns_galician_and_irish() {
+        // "galician" also starts with "ga"
+        assert_eq!(Language::suggestions("ga"), vec![Language::Galician, Language::Irish]);
+    }
+    #[test]
+    fn irish_alias_returns_irish() {
+        assert_eq!(Language::suggestions("irish"), vec![Language::Irish]);
+    }
+    #[test]
+    fn irish_label() { assert_eq!(Language::Irish.label(), "Irish (GA)"); }
+
+    #[test]
+    fn kn_alias_returns_kannada() {
+        assert_eq!(Language::suggestions("kn"), vec![Language::Kannada]);
+    }
+    #[test]
+    fn kannada_alias_returns_kannada() {
+        assert_eq!(Language::suggestions("kannada"), vec![Language::Kannada]);
+    }
+    #[test]
+    fn kannada_script_prefix_returns_kannada() {
+        assert_eq!(Language::suggestions("ಕನ್"), vec![Language::Kannada]);
+    }
+    #[test]
+    fn kannada_label() { assert_eq!(Language::Kannada.label(), "Kannada (KN)"); }
+
+    #[test]
+    fn kk_alias_returns_kazakh() {
+        assert_eq!(Language::suggestions("kk"), vec![Language::Kazakh]);
+    }
+    #[test]
+    fn kazakh_alias_returns_kazakh() {
+        assert_eq!(Language::suggestions("kazakh"), vec![Language::Kazakh]);
+    }
+    #[test]
+    fn kazakh_label() { assert_eq!(Language::Kazakh.label(), "Kazakh (KK)"); }
+
+    #[test]
+    fn km_alias_returns_khmer() {
+        assert_eq!(Language::suggestions("km"), vec![Language::Khmer]);
+    }
+    #[test]
+    fn khmer_alias_returns_khmer() {
+        assert_eq!(Language::suggestions("khmer"), vec![Language::Khmer]);
+    }
+    #[test]
+    fn khmer_script_prefix_returns_khmer() {
+        assert_eq!(Language::suggestions("ខ្មែ"), vec![Language::Khmer]);
+    }
+    #[test]
+    fn khmer_label() { assert_eq!(Language::Khmer.label(), "Khmer (KM)"); }
+
+    #[test]
+    fn lv_alias_returns_latvian() {
+        assert_eq!(Language::suggestions("lv"), vec![Language::Latvian]);
+    }
+    #[test]
+    fn latvian_alias_returns_latvian() {
+        assert_eq!(Language::suggestions("latvian"), vec![Language::Latvian]);
+    }
+    #[test]
+    fn latvian_label() { assert_eq!(Language::Latvian.label(), "Latvian (LV)"); }
+
+    #[test]
+    fn lt_alias_returns_lithuanian() {
+        assert_eq!(Language::suggestions("lt"), vec![Language::Lithuanian]);
+    }
+    #[test]
+    fn lithuanian_alias_returns_lithuanian() {
+        assert_eq!(Language::suggestions("lithuanian"), vec![Language::Lithuanian]);
+    }
+    #[test]
+    fn lithuanian_label() { assert_eq!(Language::Lithuanian.label(), "Lithuanian (LT)"); }
+
+    #[test]
+    fn mk_alias_returns_macedonian() {
+        assert_eq!(Language::suggestions("mk"), vec![Language::Macedonian]);
+    }
+    #[test]
+    fn macedonian_alias_returns_macedonian() {
+        assert_eq!(Language::suggestions("macedonian"), vec![Language::Macedonian]);
+    }
+    #[test]
+    fn macedonian_label() { assert_eq!(Language::Macedonian.label(), "Macedonian (MK)"); }
+
+    #[test]
+    fn ms_alias_returns_malay() {
+        assert_eq!(Language::suggestions("ms"), vec![Language::Malay]);
+    }
+    #[test]
+    fn malay_alias_returns_malay_and_malayalam() {
+        // "malayalam" also starts with "malay"
+        assert_eq!(Language::suggestions("malay"), vec![Language::Malay, Language::Malayalam]);
+    }
+    #[test]
+    fn malay_label() { assert_eq!(Language::Malay.label(), "Malay (MS)"); }
+
+    #[test]
+    fn ml_alias_returns_malayalam() {
+        assert_eq!(Language::suggestions("ml"), vec![Language::Malayalam]);
+    }
+    #[test]
+    fn malayalam_alias_returns_malayalam() {
+        assert_eq!(Language::suggestions("malayalam"), vec![Language::Malayalam]);
+    }
+    #[test]
+    fn malayalam_script_prefix_returns_malayalam() {
+        assert_eq!(Language::suggestions("മലയ"), vec![Language::Malayalam]);
+    }
+    #[test]
+    fn malayalam_label() { assert_eq!(Language::Malayalam.label(), "Malayalam (ML)"); }
+
+    #[test]
+    fn mn_alias_returns_mongolian() {
+        assert_eq!(Language::suggestions("mn"), vec![Language::Mongolian]);
+    }
+    #[test]
+    fn mongolian_alias_returns_mongolian() {
+        assert_eq!(Language::suggestions("mongolian"), vec![Language::Mongolian]);
+    }
+    #[test]
+    fn mongolian_label() { assert_eq!(Language::Mongolian.label(), "Mongolian (MN)"); }
+
+    #[test]
+    fn ne_alias_returns_dutch_and_nepali() {
+        // "nederlands" (Dutch alias) also starts with "ne"
+        assert_eq!(Language::suggestions("ne"), vec![Language::Dutch, Language::Nepali]);
+    }
+    #[test]
+    fn nepali_alias_returns_nepali() {
+        assert_eq!(Language::suggestions("nepali"), vec![Language::Nepali]);
+    }
+    #[test]
+    fn nepali_label() { assert_eq!(Language::Nepali.label(), "Nepali (NE)"); }
+
+    #[test]
+    fn no_alias_returns_norwegian() {
+        assert_eq!(Language::suggestions("no"), vec![Language::Norwegian]);
+    }
+    #[test]
+    fn norwegian_alias_returns_norwegian() {
+        assert_eq!(Language::suggestions("norwegian"), vec![Language::Norwegian]);
+    }
+    #[test]
+    fn norwegian_label() { assert_eq!(Language::Norwegian.label(), "Norwegian (NO)"); }
+
+    #[test]
+    fn or_alias_returns_odia() {
+        assert_eq!(Language::suggestions("or"), vec![Language::Odia]);
+    }
+    #[test]
+    fn odia_alias_returns_odia() {
+        assert_eq!(Language::suggestions("odia"), vec![Language::Odia]);
+    }
+    #[test]
+    fn odia_label() { assert_eq!(Language::Odia.label(), "Odia (OR)"); }
+
+    #[test]
+    fn pa_alias_returns_punjabi() {
+        assert_eq!(Language::suggestions("pa"), vec![Language::Punjabi]);
+    }
+    #[test]
+    fn punjabi_alias_returns_punjabi() {
+        assert_eq!(Language::suggestions("punjabi"), vec![Language::Punjabi]);
+    }
+    #[test]
+    fn punjabi_script_prefix_returns_punjabi() {
+        assert_eq!(Language::suggestions("ਪੰਜ"), vec![Language::Punjabi]);
+    }
+    #[test]
+    fn punjabi_label() { assert_eq!(Language::Punjabi.label(), "Punjabi (PA)"); }
+
+    #[test]
+    fn sr_alias_returns_serbian() {
+        assert_eq!(Language::suggestions("sr"), vec![Language::Serbian]);
+    }
+    #[test]
+    fn serbian_alias_returns_serbian() {
+        assert_eq!(Language::suggestions("serbian"), vec![Language::Serbian]);
+    }
+    #[test]
+    fn serbian_label() { assert_eq!(Language::Serbian.label(), "Serbian (SR)"); }
+
+    #[test]
+    fn si_alias_returns_sinhala() {
+        assert_eq!(Language::suggestions("si"), vec![Language::Sinhala]);
+    }
+    #[test]
+    fn sinhala_alias_returns_sinhala() {
+        assert_eq!(Language::suggestions("sinhala"), vec![Language::Sinhala]);
+    }
+    #[test]
+    fn sinhala_script_prefix_returns_sinhala() {
+        assert_eq!(Language::suggestions("සිංහ"), vec![Language::Sinhala]);
+    }
+    #[test]
+    fn sinhala_label() { assert_eq!(Language::Sinhala.label(), "Sinhala (SI)"); }
+
+    #[test]
+    fn sk_alias_returns_slovak() {
+        assert_eq!(Language::suggestions("sk"), vec![Language::Slovak]);
+    }
+    #[test]
+    fn slovak_alias_returns_slovak() {
+        assert_eq!(Language::suggestions("slovak"), vec![Language::Slovak]);
+    }
+    #[test]
+    fn slovak_label() { assert_eq!(Language::Slovak.label(), "Slovak (SK)"); }
+
+    #[test]
+    fn sl_alias_returns_slovak_and_slovenian() {
+        // "slovenčina" (Slovak alias) also starts with "sl"
+        assert_eq!(Language::suggestions("sl"), vec![Language::Slovak, Language::Slovenian]);
+    }
+    #[test]
+    fn slovenian_alias_returns_slovenian() {
+        assert_eq!(Language::suggestions("slovenian"), vec![Language::Slovenian]);
+    }
+    #[test]
+    fn slovenian_label() { assert_eq!(Language::Slovenian.label(), "Slovenian (SL)"); }
+
+    #[test]
+    fn so_alias_returns_somali() {
+        assert_eq!(Language::suggestions("so"), vec![Language::Somali]);
+    }
+    #[test]
+    fn somali_alias_returns_somali() {
+        assert_eq!(Language::suggestions("somali"), vec![Language::Somali]);
+    }
+    #[test]
+    fn somali_label() { assert_eq!(Language::Somali.label(), "Somali (SO)"); }
+
+    #[test]
+    fn sv_alias_returns_swedish() {
+        assert_eq!(Language::suggestions("sv"), vec![Language::Swedish]);
+    }
+    #[test]
+    fn swedish_alias_returns_swedish() {
+        assert_eq!(Language::suggestions("swedish"), vec![Language::Swedish]);
+    }
+    #[test]
+    fn swedish_label() { assert_eq!(Language::Swedish.label(), "Swedish (SV)"); }
+
+    #[test]
+    fn tl_alias_returns_tagalog() {
+        assert_eq!(Language::suggestions("tl"), vec![Language::Tagalog]);
+    }
+    #[test]
+    fn tagalog_alias_returns_tagalog() {
+        assert_eq!(Language::suggestions("tagalog"), vec![Language::Tagalog]);
+    }
+    #[test]
+    fn tagalog_label() { assert_eq!(Language::Tagalog.label(), "Tagalog (TL)"); }
+
+    #[test]
+    fn uz_alias_returns_uzbek() {
+        assert_eq!(Language::suggestions("uz"), vec![Language::Uzbek]);
+    }
+    #[test]
+    fn uzbek_alias_returns_uzbek() {
+        assert_eq!(Language::suggestions("uzbek"), vec![Language::Uzbek]);
+    }
+    #[test]
+    fn uzbek_label() { assert_eq!(Language::Uzbek.label(), "Uzbek (UZ)"); }
+
+    #[test]
+    fn cy_alias_returns_welsh() {
+        assert_eq!(Language::suggestions("cy"), vec![Language::Welsh]);
+    }
+    #[test]
+    fn welsh_alias_returns_welsh() {
+        assert_eq!(Language::suggestions("welsh"), vec![Language::Welsh]);
+    }
+    #[test]
+    fn welsh_label() { assert_eq!(Language::Welsh.label(), "Welsh (CY)"); }
+
+    #[test]
+    fn yo_alias_returns_yoruba() {
+        assert_eq!(Language::suggestions("yo"), vec![Language::Yoruba]);
+    }
+    #[test]
+    fn yoruba_alias_returns_yoruba() {
+        assert_eq!(Language::suggestions("yoruba"), vec![Language::Yoruba]);
+    }
+    #[test]
+    fn yoruba_label() { assert_eq!(Language::Yoruba.label(), "Yoruba (YO)"); }
+
+    #[test]
+    fn zu_alias_returns_zulu() {
+        assert_eq!(Language::suggestions("zu"), vec![Language::Zulu]);
+    }
+    #[test]
+    fn zulu_alias_returns_zulu() {
+        assert_eq!(Language::suggestions("zulu"), vec![Language::Zulu]);
+    }
+    #[test]
+    fn zulu_label() { assert_eq!(Language::Zulu.label(), "Zulu (ZU)"); }
+
     // --- case insensitivity ---
 
     #[test]
@@ -529,8 +1268,8 @@ mod tests {
     }
 
     #[test]
-    fn uppercase_es_returns_spanish() {
-        assert_eq!(Language::suggestions("ES"), vec![Language::Spanish]);
+    fn uppercase_es_returns_estonian_and_spanish() {
+        assert_eq!(Language::suggestions("ES"), vec![Language::Estonian, Language::Spanish]);
     }
 
     // --- starts_with, not contains ---
@@ -552,7 +1291,7 @@ mod tests {
         assert_eq!(Language::suggestions("klingon"), vec![]);
     }
 
-    // --- labels ---
+    // --- labels (original 30) ---
 
     #[test]
     fn english_label() { assert_eq!(Language::English.label(), "English (EN)"); }
