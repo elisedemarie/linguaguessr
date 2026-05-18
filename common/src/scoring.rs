@@ -27,6 +27,7 @@ pub struct ScoreLabels {
 #[derive(Deserialize)]
 struct LanguageEntry {
     script: String,
+    script_chars: Option<String>,
     family: String,
     branch: String,
     sub_branch: String,
@@ -44,10 +45,8 @@ struct ScriptSpecialCase {
 
 #[derive(Deserialize)]
 struct ScoringConfig {
-    same_script: u32,
-    same_sub_branch: u32,
-    same_branch: u32,
-    same_family: u32,
+    script_max: u32,
+    family_max: u32,
     unrelated: u32,
     script_special_cases: Vec<ScriptSpecialCase>,
 }
@@ -96,6 +95,28 @@ fn entry(lang: &Language) -> &'static LanguageEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Jaccard similarity helpers
+// ---------------------------------------------------------------------------
+
+fn jaccard_chars(a: &str, b: &str) -> f64 {
+    let set_a: std::collections::HashSet<char> = a.chars().collect();
+    let set_b: std::collections::HashSet<char> = b.chars().collect();
+    let union = set_a.union(&set_b).count();
+    if union == 0 { return 1.0; }
+    let intersection = set_a.intersection(&set_b).count();
+    intersection as f64 / union as f64
+}
+
+fn jaccard_nodes(g: [&str; 3], a: [&str; 3]) -> f64 {
+    let set_g: std::collections::HashSet<&str> = g.into_iter().collect();
+    let set_a: std::collections::HashSet<&str> = a.into_iter().collect();
+    let union = set_g.union(&set_a).count();
+    if union == 0 { return 0.0; }
+    let intersection = set_g.intersection(&set_a).count();
+    intersection as f64 / union as f64
+}
+
+// ---------------------------------------------------------------------------
 // Scoring functions
 // ---------------------------------------------------------------------------
 
@@ -104,12 +125,23 @@ fn compute_script_score(g: &Language, a: &Language) -> u32 {
     let data = get_data();
     let ge = entry(g);
     let ae = entry(a);
-    if ge.script == ae.script { return data.config.same_script; }
+
+    if ge.script == ae.script {
+        return match (&ge.script_chars, &ae.script_chars) {
+            (Some(gc), Some(ac)) => {
+                let j = jaccard_chars(gc, ac);
+                (data.config.script_max as f64 * j).round() as u32
+            }
+            _ => data.config.script_max,
+        };
+    }
+
+    let g_name = lang_name(g);
+    let a_name = lang_name(a);
     for special in &data.config.script_special_cases {
-        let names = &special.languages;
-        let g_name = lang_name(g);
-        let a_name = lang_name(a);
-        if (names.contains(&g_name) && names.contains(&a_name)) && g_name != a_name {
+        if special.languages.contains(&g_name) && special.languages.contains(&a_name)
+            && g_name != a_name
+        {
             return special.score;
         }
     }
@@ -118,13 +150,15 @@ fn compute_script_score(g: &Language, a: &Language) -> u32 {
 
 fn compute_family_score(g: &Language, a: &Language) -> u32 {
     if g == a { return 500; }
-    let data = get_data();
     let ge = entry(g);
     let ae = entry(a);
-    if ge.sub_branch == ae.sub_branch { return data.config.same_sub_branch; }
-    if ge.branch == ae.branch { return data.config.same_branch; }
-    if ge.family == ae.family { return data.config.same_family; }
-    data.config.unrelated
+    let data = get_data();
+
+    let j = jaccard_nodes(
+        [ge.family.as_str(), ge.branch.as_str(), ge.sub_branch.as_str()],
+        [ae.family.as_str(), ae.branch.as_str(), ae.sub_branch.as_str()],
+    );
+    (data.config.family_max as f64 * j).round() as u32
 }
 
 pub fn partial_score(guess: &Language, answer: &Language) -> ScoreBreakdown {
@@ -202,20 +236,57 @@ mod tests {
         }
     }
 
-    // --- representative pair scores ---
+    // --- Jaccard unit tests ---
 
     #[test]
-    fn spanish_portuguese_scores_950() {
-        // Both Latin script, sibling Iberian Romance
-        assert_eq!(partial_score(&Language::Spanish, &Language::Portuguese),
-            ScoreBreakdown { script: 500, family: 450, total: 950 });
+    fn jaccard_of_identical_sets_is_1() {
+        assert!((jaccard_chars("abc", "abc") - 1.0).abs() < 0.001);
     }
 
     #[test]
-    fn russian_bulgarian_scores_800() {
-        // Both Cyrillic, same Slavic family but East vs South sub-branch
+    fn jaccard_of_disjoint_sets_is_0() {
+        assert!((jaccard_chars("abc", "xyz") - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn jaccard_of_partial_overlap_is_correct() {
+        // {a,b,c} ∩ {b,c,d} = {b,c}, union = {a,b,c,d} → 2/4 = 0.5
+        assert!((jaccard_chars("abc", "bcd") - 0.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn jaccard_of_both_empty_is_1() {
+        assert!((jaccard_chars("", "") - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn jaccard_nodes_same_path_is_1() {
+        let j = jaccard_nodes(["IE", "Romance", "Iberian"], ["IE", "Romance", "Iberian"]);
+        assert!((j - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn jaccard_nodes_deduplication_works() {
+        // When branch == sub_branch, the set has 2 elements not 3
+        let j = jaccard_nodes(["Japonic", "Japonic", "Japonic"], ["Koreanic", "Koreanic", "Koreanic"]);
+        // {Japonic} ∩ {Koreanic} = 0, union = 2 → 0
+        assert!((j - 0.0).abs() < 0.001);
+    }
+
+    // --- representative pair scores (Jaccard-based) ---
+
+    #[test]
+    fn spanish_portuguese_scores_838() {
+        // Both Latin (script Jaccard ~0.775 → 388), same Iberian Romance (family 1.0 → 450)
+        assert_eq!(partial_score(&Language::Spanish, &Language::Portuguese),
+            ScoreBreakdown { script: 388, family: 450, total: 838 });
+    }
+
+    #[test]
+    fn russian_bulgarian_scores_680() {
+        // Cyrillic Jaccard 30/33 ≈ 0.909 → 455; East vs South Slavic 2/4 → 225
         assert_eq!(partial_score(&Language::Russian, &Language::Bulgarian),
-            ScoreBreakdown { script: 500, family: 300, total: 800 });
+            ScoreBreakdown { script: 455, family: 225, total: 680 });
     }
 
     #[test]
@@ -228,85 +299,81 @@ mod tests {
     #[test]
     fn hindi_urdu_scores_450() {
         // Different scripts (Devanagari vs Arabic), sibling Indo-Aryan
-        // Self-determination: scored strictly on attributes, no special-casing
         assert_eq!(partial_score(&Language::Hindi, &Language::Urdu),
             ScoreBreakdown { script: 0, family: 450, total: 450 });
     }
 
     #[test]
     fn english_japanese_scores_0() {
-        // Latin vs Japanese script, Indo-European vs Japonic
         assert_eq!(partial_score(&Language::English, &Language::Japanese),
             ScoreBreakdown { script: 0, family: 0, total: 0 });
     }
 
     #[test]
-    fn turkish_azerbaijani_scores_950() {
-        // Both Latin script, sibling Oghuz Turkic
+    fn turkish_azerbaijani_scores_935() {
+        // Latin Jaccard 32/33 ≈ 0.970 → 485; both Oghuz → 450
         assert_eq!(partial_score(&Language::Turkish, &Language::Azerbaijani),
-            ScoreBreakdown { script: 500, family: 450, total: 950 });
+            ScoreBreakdown { script: 485, family: 450, total: 935 });
     }
 
     #[test]
-    fn finnish_hungarian_scores_800() {
-        // Both Latin script, same Uralic family but Finnic vs Ugric sub-branch
+    fn finnish_hungarian_scores_600() {
+        // Latin Jaccard 27/36 = 0.75 → 375; Finnic vs Ugric 2/4 → 225
         assert_eq!(partial_score(&Language::Finnish, &Language::Hungarian),
-            ScoreBreakdown { script: 500, family: 300, total: 800 });
+            ScoreBreakdown { script: 375, family: 225, total: 600 });
     }
 
     #[test]
-    fn arabic_hebrew_scores_300() {
-        // Different Semitic scripts, same Semitic branch
+    fn arabic_hebrew_scores_225() {
+        // Different scripts → 0; Semitic branch 2/4 → 225
         assert_eq!(partial_score(&Language::Arabic, &Language::Hebrew),
-            ScoreBreakdown { script: 0, family: 300, total: 300 });
+            ScoreBreakdown { script: 0, family: 225, total: 225 });
     }
 
     #[test]
-    fn english_french_scores_650() {
-        // Both Latin, same Indo-European family but Germanic vs Romance branch
+    fn english_french_scores_407() {
+        // Latin Jaccard 26/41 ≈ 0.634 → 317; IE-only family 1/5 → 90
         assert_eq!(partial_score(&Language::English, &Language::French),
-            ScoreBreakdown { script: 500, family: 150, total: 650 });
+            ScoreBreakdown { script: 317, family: 90, total: 407 });
     }
 
     #[test]
-    fn russian_ukrainian_scores_950() {
-        // Both Cyrillic, sibling East Slavic
+    fn russian_ukrainian_scores_842() {
+        // Cyrillic Jaccard 29/37 ≈ 0.784 → 392; both East Slavic → 450
         assert_eq!(partial_score(&Language::Russian, &Language::Ukrainian),
-            ScoreBreakdown { script: 500, family: 450, total: 950 });
+            ScoreBreakdown { script: 392, family: 450, total: 842 });
     }
 
     #[test]
-    fn tamil_telugu_scores_800() {
-        // Tamil has Tamil script, Telugu has Telugu script — different scripts
-        // Both South Dravidian sub-branch
+    fn basque_spanish_scores_409() {
+        // Latin Jaccard 27/33 ≈ 0.818 → 409; Basque isolate vs IE → 0
+        assert_eq!(partial_score(&Language::Basque, &Language::Spanish),
+            ScoreBreakdown { script: 409, family: 0, total: 409 });
+    }
+
+    #[test]
+    fn tamil_telugu_scores_450() {
+        // Different scripts (Tamil vs Telugu), both South Dravidian → 0+450
         assert_eq!(partial_score(&Language::Tamil, &Language::Telugu),
             ScoreBreakdown { script: 0, family: 450, total: 450 });
     }
 
     #[test]
     fn swahili_zulu_scores_950() {
-        // Both Latin script, sibling Bantu
+        // Both base Latin (Jaccard 1.0 → 500), sibling Bantu → 450
         assert_eq!(partial_score(&Language::Swahili, &Language::Zulu),
             ScoreBreakdown { script: 500, family: 450, total: 950 });
     }
 
     #[test]
     fn japanese_korean_scores_0() {
-        // Different scripts, different language families (Japonic vs Koreanic)
         assert_eq!(partial_score(&Language::Japanese, &Language::Korean),
             ScoreBreakdown { script: 0, family: 0, total: 0 });
     }
 
     #[test]
-    fn basque_spanish_scores_500() {
-        // Both Latin script, Basque is an isolate — no family relation
-        assert_eq!(partial_score(&Language::Basque, &Language::Spanish),
-            ScoreBreakdown { script: 500, family: 0, total: 500 });
-    }
-
-    #[test]
     fn indonesian_malay_scores_950() {
-        // Both Latin, sibling Malayo-Polynesian
+        // Both base Latin (Jaccard 1.0 → 500), sibling Malayo-Polynesian → 450
         assert_eq!(partial_score(&Language::Indonesian, &Language::Malay),
             ScoreBreakdown { script: 500, family: 450, total: 950 });
     }

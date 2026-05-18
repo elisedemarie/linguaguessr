@@ -194,9 +194,9 @@ mod tests {
 
     #[test]
     fn wrong_guess_score_reflects_partial_credit() {
-        // English → French: both Latin (500), both Indo-European (150) = 650
+        // English → French: Latin Jaccard 26/41 → 317 + IE-only family 1/5 → 90 = 407
         let response = wrong_response(Language::English, Language::French);
-        assert_eq!(response.score.total, 650);
+        assert_eq!(response.score.total, 407);
     }
 
     #[test]
