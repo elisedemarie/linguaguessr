@@ -7,6 +7,8 @@ use uuid::Uuid;
 pub struct RoundView {
     pub round_id: Uuid,
     pub text: String,
+    #[serde(default)]
+    pub options: Vec<Language>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -39,14 +41,19 @@ mod tests {
         Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap()
     }
 
+    fn round_view(text: &str) -> RoundView {
+        RoundView { round_id: fixed_uuid(), text: text.to_string(), options: vec![] }
+    }
+
+    fn round_view_with_options(text: &str, options: Vec<Language>) -> RoundView {
+        RoundView { round_id: fixed_uuid(), text: text.to_string(), options }
+    }
+
     // --- RoundView ---
 
     #[test]
     fn round_view_serialises_to_expected_json_shape() {
-        let round = RoundView {
-            round_id: fixed_uuid(),
-            text: "Bonjour le monde.".to_string(),
-        };
+        let round = round_view("Bonjour le monde.");
         let json = serde_json::to_string(&round).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed["round_id"], "550e8400-e29b-41d4-a716-446655440000");
@@ -55,13 +62,37 @@ mod tests {
 
     #[test]
     fn round_view_round_trips() {
-        let original = RoundView {
-            round_id: fixed_uuid(),
-            text: "Hello world.".to_string(),
-        };
+        let original = round_view("Hello world.");
         let json = serde_json::to_string(&original).unwrap();
         let restored: RoundView = serde_json::from_str(&json).unwrap();
         assert_eq!(original, restored);
+    }
+
+    #[test]
+    fn round_view_with_options_round_trips() {
+        let original = round_view_with_options(
+            "Bonjour.",
+            vec![Language::French, Language::English, Language::Spanish, Language::German],
+        );
+        let json = serde_json::to_string(&original).unwrap();
+        let restored: RoundView = serde_json::from_str(&json).unwrap();
+        assert_eq!(original, restored);
+    }
+
+    #[test]
+    fn round_view_options_serialise_as_language_strings() {
+        let round = round_view_with_options("text", vec![Language::French, Language::Arabic]);
+        let json = serde_json::to_string(&round).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["options"][0], "French");
+        assert_eq!(parsed["options"][1], "Arabic");
+    }
+
+    #[test]
+    fn round_view_without_options_field_in_json_deserialises_as_empty() {
+        let json = r#"{"round_id":"550e8400-e29b-41d4-a716-446655440000","text":"hello"}"#;
+        let round: RoundView = serde_json::from_str(json).unwrap();
+        assert!(round.options.is_empty());
     }
 
     // --- GameView ---
@@ -70,10 +101,7 @@ mod tests {
     fn game_view_serialises_to_expected_json_shape() {
         let game = GameView {
             game_id: fixed_uuid(),
-            rounds: vec![RoundView {
-                round_id: fixed_uuid(),
-                text: "Some text.".to_string(),
-            }],
+            rounds: vec![round_view("Some text.")],
         };
         let json = serde_json::to_string(&game).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
@@ -86,10 +114,7 @@ mod tests {
     fn game_view_round_trips() {
         let original = GameView {
             game_id: fixed_uuid(),
-            rounds: vec![
-                RoundView { round_id: fixed_uuid(), text: "Round one.".to_string() },
-                RoundView { round_id: fixed_uuid(), text: "Round two.".to_string() },
-            ],
+            rounds: vec![round_view("Round one."), round_view("Round two.")],
         };
         let json = serde_json::to_string(&original).unwrap();
         let restored: GameView = serde_json::from_str(&json).unwrap();
