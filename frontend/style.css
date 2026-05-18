@@ -189,6 +189,12 @@ body {
   font-weight: 600;
 }
 
+.combobox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 /* --- Submit button --- */
 
 .submit-btn {

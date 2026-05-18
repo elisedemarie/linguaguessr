@@ -255,7 +255,7 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<usize>) -> im
                     let round = current_round.get();
                     if round.options.is_empty() {
                         view! {
-                            <div>
+                            <div class="combobox-group">
                                 <LanguageCombobox
                                     query=query
                                     pool=pool
