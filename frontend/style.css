@@ -57,6 +57,63 @@ body {
   background: #3a7ae0;
 }
 
+/* --- Mode buttons --- */
+
+.mode-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 1rem;
+}
+
+.mode-btn {
+  width: 100%;
+  padding: 0.85rem 2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.mode-btn:hover {
+  transform: translateY(-1px);
+}
+
+.mode-btn:active {
+  transform: translateY(0);
+}
+
+.mode-btn.easy {
+  background: #e6f9ee;
+  color: #1a7a3f;
+}
+
+.mode-btn.easy:hover {
+  background: #cff0de;
+}
+
+.mode-btn.medium {
+  background: #4f8ef7;
+  color: white;
+}
+
+.mode-btn.medium:hover {
+  background: #3a7ae0;
+}
+
+.mode-btn.hard {
+  background: #2d2d2d;
+  color: white;
+}
+
+.mode-btn.hard:hover {
+  background: #1a1a1a;
+}
+
 /* --- Loading / Error --- */
 
 .loading, .error {
