@@ -298,3 +298,87 @@ pub fn LanguageCombobox(
         </div>
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- realistic game inputs (score 0–5 out of 5) ---
+
+    #[test]
+    fn zero_out_of_five_is_keep_practising() {
+        assert_eq!(score_message(0, 5), "Keep practising!");
+    }
+
+    #[test]
+    fn one_out_of_five_is_keep_practising() {
+        assert_eq!(score_message(1, 5), "Keep practising!");
+    }
+
+    #[test]
+    fn two_out_of_five_is_getting_there() {
+        assert_eq!(score_message(2, 5), "Getting there.");
+    }
+
+    #[test]
+    fn three_out_of_five_is_pretty_good() {
+        assert_eq!(score_message(3, 5), "Pretty good!");
+    }
+
+    #[test]
+    fn four_out_of_five_is_excellent() {
+        assert_eq!(score_message(4, 5), "Excellent work!");
+    }
+
+    #[test]
+    fn five_out_of_five_is_perfect() {
+        assert_eq!(score_message(5, 5), "Perfect — flawless!");
+    }
+
+    // --- boundary values for each range ---
+
+    #[test]
+    fn exactly_100_percent_is_perfect() {
+        assert_eq!(score_message(100, 100), "Perfect — flawless!");
+    }
+
+    #[test]
+    fn exactly_99_percent_is_excellent() {
+        assert_eq!(score_message(99, 100), "Excellent work!");
+    }
+
+    #[test]
+    fn exactly_80_percent_is_excellent() {
+        assert_eq!(score_message(80, 100), "Excellent work!");
+    }
+
+    #[test]
+    fn exactly_79_percent_is_pretty_good() {
+        assert_eq!(score_message(79, 100), "Pretty good!");
+    }
+
+    #[test]
+    fn exactly_60_percent_is_pretty_good() {
+        assert_eq!(score_message(60, 100), "Pretty good!");
+    }
+
+    #[test]
+    fn exactly_59_percent_is_getting_there() {
+        assert_eq!(score_message(59, 100), "Getting there.");
+    }
+
+    #[test]
+    fn exactly_40_percent_is_getting_there() {
+        assert_eq!(score_message(40, 100), "Getting there.");
+    }
+
+    #[test]
+    fn exactly_39_percent_is_keep_practising() {
+        assert_eq!(score_message(39, 100), "Keep practising!");
+    }
+
+    #[test]
+    fn zero_percent_is_keep_practising() {
+        assert_eq!(score_message(0, 100), "Keep practising!");
+    }
+}
