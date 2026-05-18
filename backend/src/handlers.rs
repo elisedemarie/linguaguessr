@@ -9,6 +9,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use common::api::{GuessRequest, GuessResponse};
+use common::api::RoundView;
 use common::scoring::{partial_score, score_labels};
 use common::types::{GameMode, Language};
 use crate::game::{GameSession, Round, session_to_view};
@@ -57,10 +58,31 @@ pub async fn get_game(
 
     let game_id = Uuid::new_v4();
     let session = GameSession { game_id, rounds };
-    let view = session_to_view(&session);
+    let mut view = session_to_view(&session);
+
+    if mode == GameMode::Easy {
+        let pool = Language::easy_pool();
+        for (round_view, round) in view.rounds.iter_mut().zip(session.rounds.iter()) {
+            round_view.options = make_options(&round.language, pool);
+        }
+    }
+
     state.store.lock().unwrap().insert(game_id, session);
 
     Json(view).into_response()
+}
+
+pub(crate) fn make_options(correct: &Language, pool: &[Language]) -> Vec<Language> {
+    let mut rng = rand::thread_rng();
+    let mut distractors: Vec<Language> = pool.iter()
+        .filter(|l| *l != correct)
+        .cloned()
+        .collect();
+    rand::seq::SliceRandom::shuffle(distractors.as_mut_slice(), &mut rng);
+    let mut options: Vec<Language> = distractors.into_iter().take(3).collect();
+    options.push(correct.clone());
+    rand::seq::SliceRandom::shuffle(options.as_mut_slice(), &mut rng);
+    options
 }
 
 pub async fn post_guess(
@@ -459,5 +481,83 @@ mod tests {
     #[tokio::test]
     async fn get_game_with_no_mode_defaults_to_medium_pool_size() {
         assert_eq!(language_pool(&GameMode::default()).len(), 30);
+    }
+
+    // --- make_options ---
+
+    #[test]
+    fn make_options_returns_exactly_4() {
+        let opts = make_options(&Language::French, Language::easy_pool());
+        assert_eq!(opts.len(), 4);
+    }
+
+    #[test]
+    fn make_options_always_includes_correct_language() {
+        let opts = make_options(&Language::French, Language::easy_pool());
+        assert!(opts.contains(&Language::French));
+    }
+
+    #[test]
+    fn make_options_has_no_duplicates() {
+        let opts = make_options(&Language::English, Language::easy_pool());
+        let unique: std::collections::HashSet<_> = opts.iter().collect();
+        assert_eq!(unique.len(), 4);
+    }
+
+    #[test]
+    fn make_options_all_from_pool() {
+        let pool = Language::easy_pool();
+        let opts = make_options(&Language::Arabic, pool);
+        for opt in &opts {
+            assert!(pool.contains(opt));
+        }
+    }
+
+    #[test]
+    fn make_options_correct_appears_exactly_once() {
+        let opts = make_options(&Language::Hindi, Language::easy_pool());
+        assert_eq!(opts.iter().filter(|l| **l == Language::Hindi).count(), 1);
+    }
+
+    // --- easy mode HTTP ---
+
+    #[tokio::test]
+    async fn easy_mode_rounds_have_exactly_4_options() {
+        let (app, _) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?mode=easy")).await.unwrap();
+        let game = parse_game_view(response).await;
+        for round in &game.rounds {
+            assert_eq!(round.options.len(), 4);
+        }
+    }
+
+    #[tokio::test]
+    async fn medium_mode_rounds_have_no_options() {
+        let (app, _) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?mode=medium")).await.unwrap();
+        let game = parse_game_view(response).await;
+        for round in &game.rounds {
+            assert!(round.options.is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn hard_mode_rounds_have_no_options() {
+        let (app, _) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?mode=hard")).await.unwrap();
+        let game = parse_game_view(response).await;
+        for round in &game.rounds {
+            assert!(round.options.is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn default_mode_rounds_have_no_options() {
+        let (app, _) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game")).await.unwrap();
+        let game = parse_game_view(response).await;
+        for round in &game.rounds {
+            assert!(round.options.is_empty());
+        }
     }
 }
