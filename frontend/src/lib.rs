@@ -1,5 +1,5 @@
 use common::api::{GameView, GuessRequest, GuessResponse};
-use common::types::Language;
+use common::types::{GameMode, Language};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use uuid::Uuid;
@@ -14,7 +14,7 @@ const BACKEND_URL: &str = match option_env!("BACKEND_URL") {
 enum GamePhase {
     Home,
     Loading,
-    Playing(GameView),
+    Playing { game: GameView, mode: GameMode },
     Finished { score: usize, total: usize },
     Error(String),
 }
@@ -30,15 +30,15 @@ pub fn App() -> impl IntoView {
 
     let go_home = move |_| phase.set(GamePhase::Home);
 
-    let start_game = move |_| {
+    let start_game = Callback::new(move |mode: GameMode| {
         phase.set(GamePhase::Loading);
         spawn_local(async move {
-            match fetch_game().await {
-                Ok(game) => phase.set(GamePhase::Playing(game)),
+            match fetch_game(&mode).await {
+                Ok(game) => phase.set(GamePhase::Playing { game, mode }),
                 Err(e)   => phase.set(GamePhase::Error(e)),
             }
         });
-    };
+    });
 
     view! {
         <div class="app">
@@ -49,11 +49,12 @@ pub fn App() -> impl IntoView {
                 GamePhase::Loading => view! {
                     <LoadingScreen />
                 }.into_any(),
-                GamePhase::Playing(game) => {
+                GamePhase::Playing { game, mode } => {
                     let total = game.rounds.len();
                     view! {
                         <RoundScreen
                             game=game
+                            mode=mode
                             on_finish=Callback::new(move |score| {
                                 phase.set(GamePhase::Finished { score, total });
                             })
@@ -71,11 +72,21 @@ pub fn App() -> impl IntoView {
     }
 }
 
-async fn fetch_game() -> Result<GameView, String> {
-    let response = gloo_net::http::Request::get(&format!("{BACKEND_URL}/api/game"))
-        .send()
-        .await
-        .map_err(|e| format!("Network error: {e}"))?;
+fn mode_str(mode: &GameMode) -> &'static str {
+    match mode {
+        GameMode::Easy   => "easy",
+        GameMode::Medium => "medium",
+        GameMode::Hard   => "hard",
+    }
+}
+
+async fn fetch_game(mode: &GameMode) -> Result<GameView, String> {
+    let response = gloo_net::http::Request::get(
+        &format!("{BACKEND_URL}/api/game?mode={}", mode_str(mode))
+    )
+    .send()
+    .await
+    .map_err(|e| format!("Network error: {e}"))?;
 
     if !response.ok() {
         return Err(format!("Server error: {}", response.status()));
@@ -109,13 +120,34 @@ async fn submit_guess(
     response.json::<GuessResponse>().await.map_err(|e| format!("Parse error: {e}"))
 }
 
+fn suggestion_pool(mode: &GameMode) -> &'static [Language] {
+    match mode {
+        GameMode::Easy   => Language::easy_pool(),
+        GameMode::Medium => Language::medium_pool(),
+        GameMode::Hard   => Language::all(),
+    }
+}
+
 #[component]
-fn HomeScreen(on_play: impl Fn(leptos::web_sys::MouseEvent) + 'static) -> impl IntoView {
+fn HomeScreen(on_play: Callback<GameMode>) -> impl IntoView {
     view! {
         <div class="home">
             <h1 class="title">"LinguaGuessr"</h1>
             <p class="subtitle">"Can you identify the language?"</p>
-            <button class="play-btn" on:click=on_play>"Play"</button>
+            <div class="mode-buttons">
+                <button class="mode-btn easy"
+                    on:click=move |_| on_play.run(GameMode::Easy)>
+                    "Easy"
+                </button>
+                <button class="mode-btn medium"
+                    on:click=move |_| on_play.run(GameMode::Medium)>
+                    "Medium"
+                </button>
+                <button class="mode-btn hard"
+                    on:click=move |_| on_play.run(GameMode::Hard)>
+                    "Hard"
+                </button>
+            </div>
         </div>
     }
 }
@@ -164,10 +196,11 @@ fn score_message(score: usize, total: usize) -> &'static str {
 }
 
 #[component]
-fn RoundScreen(game: GameView, on_finish: Callback<usize>) -> impl IntoView {
+fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<usize>) -> impl IntoView {
     let game_id   = game.game_id;
     let total     = game.rounds.len();
     let rounds    = StoredValue::new(game.rounds);
+    let pool      = suggestion_pool(&mode);
 
     let round_index = RwSignal::new(0usize);
     let score       = RwSignal::new(0usize);
@@ -220,6 +253,7 @@ fn RoundScreen(game: GameView, on_finish: Callback<usize>) -> impl IntoView {
             <Show when=move || feedback.get().is_none()>
                 <LanguageCombobox
                     query=query
+                    pool=pool
                     on_select=Callback::new(move |lang| selected.set(Some(lang)))
                 />
                 <button
@@ -258,9 +292,10 @@ fn RoundScreen(game: GameView, on_finish: Callback<usize>) -> impl IntoView {
 pub fn LanguageCombobox(
     on_select: Callback<Language>,
     query: RwSignal<String>,
+    pool: &'static [Language],
 ) -> impl IntoView {
-    let is_open   = RwSignal::new(false);
-    let suggestions = Memo::new(move |_| Language::suggestions(&query.get()));
+    let is_open     = RwSignal::new(false);
+    let suggestions = Memo::new(move |_| Language::suggestions_for(&query.get(), pool));
 
     view! {
         <div class="combobox">
@@ -303,80 +338,88 @@ pub fn LanguageCombobox(
 mod tests {
     use super::*;
 
-    // --- realistic game inputs (score 0–5 out of 5) ---
+    // --- mode_str ---
+
+    #[test]
+    fn mode_str_easy() { assert_eq!(mode_str(&GameMode::Easy), "easy"); }
+    #[test]
+    fn mode_str_medium() { assert_eq!(mode_str(&GameMode::Medium), "medium"); }
+    #[test]
+    fn mode_str_hard() { assert_eq!(mode_str(&GameMode::Hard), "hard"); }
+
+    // --- suggestion_pool ---
+
+    #[test]
+    fn suggestion_pool_easy_returns_10() {
+        assert_eq!(suggestion_pool(&GameMode::Easy).len(), 10);
+    }
+    #[test]
+    fn suggestion_pool_medium_returns_30() {
+        assert_eq!(suggestion_pool(&GameMode::Medium).len(), 30);
+    }
+    #[test]
+    fn suggestion_pool_hard_returns_75() {
+        assert_eq!(suggestion_pool(&GameMode::Hard).len(), 75);
+    }
+
+    // --- score_message ---
 
     #[test]
     fn zero_out_of_five_is_keep_practising() {
         assert_eq!(score_message(0, 5), "Keep practising!");
     }
-
     #[test]
     fn one_out_of_five_is_keep_practising() {
         assert_eq!(score_message(1, 5), "Keep practising!");
     }
-
     #[test]
     fn two_out_of_five_is_getting_there() {
         assert_eq!(score_message(2, 5), "Getting there.");
     }
-
     #[test]
     fn three_out_of_five_is_pretty_good() {
         assert_eq!(score_message(3, 5), "Pretty good!");
     }
-
     #[test]
     fn four_out_of_five_is_excellent() {
         assert_eq!(score_message(4, 5), "Excellent work!");
     }
-
     #[test]
     fn five_out_of_five_is_perfect() {
         assert_eq!(score_message(5, 5), "Perfect — flawless!");
     }
-
-    // --- boundary values for each range ---
-
     #[test]
     fn exactly_100_percent_is_perfect() {
         assert_eq!(score_message(100, 100), "Perfect — flawless!");
     }
-
     #[test]
     fn exactly_99_percent_is_excellent() {
         assert_eq!(score_message(99, 100), "Excellent work!");
     }
-
     #[test]
     fn exactly_80_percent_is_excellent() {
         assert_eq!(score_message(80, 100), "Excellent work!");
     }
-
     #[test]
     fn exactly_79_percent_is_pretty_good() {
         assert_eq!(score_message(79, 100), "Pretty good!");
     }
-
     #[test]
     fn exactly_60_percent_is_pretty_good() {
         assert_eq!(score_message(60, 100), "Pretty good!");
     }
-
     #[test]
     fn exactly_59_percent_is_getting_there() {
         assert_eq!(score_message(59, 100), "Getting there.");
     }
-
     #[test]
     fn exactly_40_percent_is_getting_there() {
         assert_eq!(score_message(40, 100), "Getting there.");
     }
-
     #[test]
     fn exactly_39_percent_is_keep_practising() {
         assert_eq!(score_message(39, 100), "Keep practising!");
     }
-
     #[test]
     fn zero_percent_is_keep_practising() {
         assert_eq!(score_message(0, 100), "Keep practising!");

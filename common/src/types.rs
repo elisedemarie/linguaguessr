@@ -1,5 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum GameMode {
+    Easy,
+    #[default]
+    Medium,
+    Hard,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Language {
     // original 30
@@ -322,9 +331,59 @@ impl Language {
         }
     }
 
-    pub fn suggestions(query: &str) -> Vec<Language> {
+    pub fn medium_pool() -> &'static [Language] {
+        &[
+            Language::English,
+            Language::French,
+            Language::Japanese,
+            Language::Arabic,
+            Language::Russian,
+            Language::Spanish,
+            Language::Chinese,
+            Language::Hindi,
+            Language::Bengali,
+            Language::Portuguese,
+            Language::Indonesian,
+            Language::Urdu,
+            Language::German,
+            Language::Korean,
+            Language::Vietnamese,
+            Language::Telugu,
+            Language::Marathi,
+            Language::Tamil,
+            Language::Turkish,
+            Language::Persian,
+            Language::Italian,
+            Language::Thai,
+            Language::Swahili,
+            Language::Polish,
+            Language::Ukrainian,
+            Language::Dutch,
+            Language::Greek,
+            Language::Romanian,
+            Language::Czech,
+            Language::Hungarian,
+        ]
+    }
+
+    pub fn easy_pool() -> &'static [Language] {
+        &[
+            Language::English,
+            Language::Chinese,
+            Language::Hindi,
+            Language::Spanish,
+            Language::French,
+            Language::Arabic,
+            Language::Bengali,
+            Language::Portuguese,
+            Language::Russian,
+            Language::Urdu,
+        ]
+    }
+
+    pub fn suggestions_for(query: &str, pool: &[Language]) -> Vec<Language> {
         let query_lower = query.to_lowercase();
-        let mut results: Vec<Language> = Language::all()
+        let mut results: Vec<Language> = pool
             .iter()
             .filter(|lang| {
                 query_lower.is_empty() || lang.aliases()
@@ -336,11 +395,130 @@ impl Language {
         results.sort_by(|a, b| a.label().cmp(b.label()));
         results
     }
+
+    pub fn suggestions(query: &str) -> Vec<Language> {
+        Self::suggestions_for(query, Self::all())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // --- GameMode ---
+
+    #[test]
+    fn game_mode_default_is_medium() {
+        assert_eq!(GameMode::default(), GameMode::Medium);
+    }
+
+    #[test]
+    fn game_mode_easy_deserialises_from_lowercase() {
+        let mode: GameMode = serde_json::from_str(r#""easy""#).unwrap();
+        assert_eq!(mode, GameMode::Easy);
+    }
+
+    #[test]
+    fn game_mode_medium_deserialises_from_lowercase() {
+        let mode: GameMode = serde_json::from_str(r#""medium""#).unwrap();
+        assert_eq!(mode, GameMode::Medium);
+    }
+
+    #[test]
+    fn game_mode_hard_deserialises_from_lowercase() {
+        let mode: GameMode = serde_json::from_str(r#""hard""#).unwrap();
+        assert_eq!(mode, GameMode::Hard);
+    }
+
+    #[test]
+    fn game_mode_easy_serialises_as_lowercase() {
+        assert_eq!(serde_json::to_string(&GameMode::Easy).unwrap(), r#""easy""#);
+    }
+
+    #[test]
+    fn game_mode_hard_serialises_as_lowercase() {
+        assert_eq!(serde_json::to_string(&GameMode::Hard).unwrap(), r#""hard""#);
+    }
+
+    // --- medium_pool ---
+
+    #[test]
+    fn medium_pool_returns_exactly_30_languages() {
+        assert_eq!(Language::medium_pool().len(), 30);
+    }
+
+    #[test]
+    fn medium_pool_contains_english() {
+        assert!(Language::medium_pool().contains(&Language::English));
+    }
+
+    #[test]
+    fn medium_pool_contains_hungarian() {
+        assert!(Language::medium_pool().contains(&Language::Hungarian));
+    }
+
+    #[test]
+    fn medium_pool_does_not_contain_afrikaans() {
+        assert!(!Language::medium_pool().contains(&Language::Afrikaans));
+    }
+
+    #[test]
+    fn medium_pool_does_not_contain_swedish() {
+        assert!(!Language::medium_pool().contains(&Language::Swedish));
+    }
+
+    // --- easy_pool ---
+
+    #[test]
+    fn easy_pool_returns_exactly_10_languages() {
+        assert_eq!(Language::easy_pool().len(), 10);
+    }
+
+    #[test]
+    fn easy_pool_contains_the_10_most_spoken_languages() {
+        let pool = Language::easy_pool();
+        assert!(pool.contains(&Language::English));
+        assert!(pool.contains(&Language::Chinese));
+        assert!(pool.contains(&Language::Hindi));
+        assert!(pool.contains(&Language::Spanish));
+        assert!(pool.contains(&Language::French));
+        assert!(pool.contains(&Language::Arabic));
+        assert!(pool.contains(&Language::Bengali));
+        assert!(pool.contains(&Language::Portuguese));
+        assert!(pool.contains(&Language::Russian));
+        assert!(pool.contains(&Language::Urdu));
+    }
+
+    #[test]
+    fn easy_pool_does_not_contain_japanese() {
+        assert!(!Language::easy_pool().contains(&Language::Japanese));
+    }
+
+    // --- suggestions_for ---
+
+    #[test]
+    fn suggestions_for_empty_query_returns_full_pool() {
+        assert_eq!(Language::suggestions_for("", Language::medium_pool()).len(), 30);
+    }
+
+    #[test]
+    fn suggestions_for_filters_within_pool() {
+        let result = Language::suggestions_for("en", Language::medium_pool());
+        assert_eq!(result, vec![Language::English]);
+    }
+
+    #[test]
+    fn suggestions_for_excludes_languages_outside_pool() {
+        // Swedish is in all() but not in medium_pool()
+        let result = Language::suggestions_for("sw", Language::medium_pool());
+        assert_eq!(result, vec![Language::Swahili]);
+    }
+
+    #[test]
+    fn suggestions_for_returns_sorted_results() {
+        let result = Language::suggestions_for("p", Language::medium_pool());
+        assert_eq!(result, vec![Language::Persian, Language::Polish, Language::Portuguese]);
+    }
 
     // --- empty query ---
 

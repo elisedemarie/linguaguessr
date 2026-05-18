@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use serde::Deserialize;
 use uuid::Uuid;
 
 use common::api::{GuessRequest, GuessResponse};
-use common::types::Language;
+use common::types::{GameMode, Language};
 use crate::game::{GameSession, Round, session_to_view};
 use crate::wikipedia::{fetch_article, WikipediaClient};
 use futures::future::join_all;
@@ -19,8 +20,25 @@ pub struct AppState {
     pub wikipedia: Arc<dyn WikipediaClient>,
 }
 
-pub async fn get_game(State(state): State<AppState>) -> impl IntoResponse {
-    let mut languages = Language::all().to_vec();
+#[derive(Deserialize)]
+pub struct GameParams {
+    pub mode: Option<GameMode>,
+}
+
+pub(crate) fn language_pool(mode: &GameMode) -> &'static [Language] {
+    match mode {
+        GameMode::Easy   => Language::easy_pool(),
+        GameMode::Medium => Language::medium_pool(),
+        GameMode::Hard   => Language::all(),
+    }
+}
+
+pub async fn get_game(
+    State(state): State<AppState>,
+    Query(params): Query<GameParams>,
+) -> impl IntoResponse {
+    let mode = params.mode.unwrap_or_default();
+    let mut languages = language_pool(&mode).to_vec();
     rand::seq::SliceRandom::shuffle(languages.as_mut_slice(), &mut rand::thread_rng());
     let languages: Vec<Language> = languages.into_iter().take(5).collect();
 
@@ -344,5 +362,66 @@ mod tests {
 
         let second = app.oneshot(post_request(&uri, body)).await.unwrap();
         assert_eq!(second.status(), StatusCode::OK);
+    }
+
+    // --- mode-aware game creation ---
+
+    #[test]
+    fn language_pool_medium_returns_30() {
+        assert_eq!(language_pool(&GameMode::Medium).len(), 30);
+    }
+
+    #[test]
+    fn language_pool_hard_returns_75() {
+        assert_eq!(language_pool(&GameMode::Hard).len(), 75);
+    }
+
+    #[test]
+    fn language_pool_easy_returns_10() {
+        assert_eq!(language_pool(&GameMode::Easy).len(), 10);
+    }
+
+    #[test]
+    fn language_pool_hard_contains_languages_outside_medium_pool() {
+        let hard = language_pool(&GameMode::Hard);
+        assert!(hard.contains(&Language::Swedish));
+        assert!(hard.contains(&Language::Georgian));
+    }
+
+    #[test]
+    fn language_pool_medium_does_not_contain_hard_only_languages() {
+        let medium = language_pool(&GameMode::Medium);
+        assert!(!medium.contains(&Language::Swedish));
+        assert!(!medium.contains(&Language::Georgian));
+    }
+
+    #[tokio::test]
+    async fn get_game_with_mode_medium_returns_200() {
+        let (app, _) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?mode=medium")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn get_game_with_mode_hard_returns_200_and_five_rounds() {
+        let (app, _) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?mode=hard")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let game = parse_game_view(response).await;
+        assert_eq!(game.rounds.len(), 5);
+    }
+
+    #[tokio::test]
+    async fn get_game_with_mode_easy_returns_200_and_five_rounds() {
+        let (app, _) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?mode=easy")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let game = parse_game_view(response).await;
+        assert_eq!(game.rounds.len(), 5);
+    }
+
+    #[tokio::test]
+    async fn get_game_with_no_mode_defaults_to_medium_pool_size() {
+        assert_eq!(language_pool(&GameMode::default()).len(), 30);
     }
 }
