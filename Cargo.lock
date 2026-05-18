@@ -161,6 +161,7 @@ dependencies = [
  "futures",
  "rand",
  "reqwest",
+ "serde",
  "serde_json",
  "tokio",
  "tower 0.4.13",

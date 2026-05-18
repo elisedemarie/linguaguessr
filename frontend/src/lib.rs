@@ -251,18 +251,54 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<usize>) -> im
             </div>
 
             <Show when=move || feedback.get().is_none()>
-                <LanguageCombobox
-                    query=query
-                    pool=pool
-                    on_select=Callback::new(move |lang| selected.set(Some(lang)))
-                />
-                <button
-                    class="submit-btn"
-                    prop:disabled=move || selected.get().is_none() || submitting.get()
-                    on:click=on_submit
-                >
-                    {move || if submitting.get() { "Submitting..." } else { "Submit" }}
-                </button>
+                {move || {
+                    let round = current_round.get();
+                    if round.options.is_empty() {
+                        view! {
+                            <div class="combobox-group">
+                                <LanguageCombobox
+                                    query=query
+                                    pool=pool
+                                    on_select=Callback::new(move |lang| selected.set(Some(lang)))
+                                />
+                                <button
+                                    class="submit-btn"
+                                    prop:disabled=move || selected.get().is_none() || submitting.get()
+                                    on:click=on_submit
+                                >
+                                    {move || if submitting.get() { "Submitting..." } else { "Submit" }}
+                                </button>
+                            </div>
+                        }.into_any()
+                    } else {
+                        let options = round.options.clone();
+                        view! {
+                            <div class="option-buttons">
+                                {options.into_iter().map(|lang| {
+                                    let label = lang.label().to_string();
+                                    let lang_for_click = lang.clone();
+                                    let is_selected = move || selected.get().as_ref() == Some(&lang);
+                                    view! {
+                                        <button
+                                            class="option-btn"
+                                            class:selected=is_selected
+                                            on:click=move |_| selected.set(Some(lang_for_click.clone()))
+                                        >
+                                            {label}
+                                        </button>
+                                    }
+                                }).collect::<Vec<_>>()}
+                                <button
+                                    class="submit-btn"
+                                    prop:disabled=move || selected.get().is_none() || submitting.get()
+                                    on:click=on_submit
+                                >
+                                    {move || if submitting.get() { "Submitting..." } else { "Submit" }}
+                                </button>
+                            </div>
+                        }.into_any()
+                    }
+                }}
             </Show>
 
             <Show when=move || feedback.get().is_some()>
@@ -362,64 +398,80 @@ mod tests {
         assert_eq!(suggestion_pool(&GameMode::Hard).len(), 75);
     }
 
-    // --- score_message ---
+    // --- realistic game inputs (score 0–5 out of 5) ---
 
     #[test]
     fn zero_out_of_five_is_keep_practising() {
         assert_eq!(score_message(0, 5), "Keep practising!");
     }
+
     #[test]
     fn one_out_of_five_is_keep_practising() {
         assert_eq!(score_message(1, 5), "Keep practising!");
     }
+
     #[test]
     fn two_out_of_five_is_getting_there() {
         assert_eq!(score_message(2, 5), "Getting there.");
     }
+
     #[test]
     fn three_out_of_five_is_pretty_good() {
         assert_eq!(score_message(3, 5), "Pretty good!");
     }
+
     #[test]
     fn four_out_of_five_is_excellent() {
         assert_eq!(score_message(4, 5), "Excellent work!");
     }
+
     #[test]
     fn five_out_of_five_is_perfect() {
         assert_eq!(score_message(5, 5), "Perfect — flawless!");
     }
+
+    // --- boundary values for each range ---
+
     #[test]
     fn exactly_100_percent_is_perfect() {
         assert_eq!(score_message(100, 100), "Perfect — flawless!");
     }
+
     #[test]
     fn exactly_99_percent_is_excellent() {
         assert_eq!(score_message(99, 100), "Excellent work!");
     }
+
     #[test]
     fn exactly_80_percent_is_excellent() {
         assert_eq!(score_message(80, 100), "Excellent work!");
     }
+
     #[test]
     fn exactly_79_percent_is_pretty_good() {
         assert_eq!(score_message(79, 100), "Pretty good!");
     }
+
     #[test]
     fn exactly_60_percent_is_pretty_good() {
         assert_eq!(score_message(60, 100), "Pretty good!");
     }
+
     #[test]
     fn exactly_59_percent_is_getting_there() {
         assert_eq!(score_message(59, 100), "Getting there.");
     }
+
     #[test]
     fn exactly_40_percent_is_getting_there() {
         assert_eq!(score_message(40, 100), "Getting there.");
     }
+
     #[test]
     fn exactly_39_percent_is_keep_practising() {
         assert_eq!(score_message(39, 100), "Keep practising!");
     }
+
     #[test]
     fn zero_percent_is_keep_practising() {
         assert_eq!(score_message(0, 100), "Keep practising!");

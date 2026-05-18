@@ -19,6 +19,7 @@ pub fn session_to_view(session: &GameSession) -> GameView {
         rounds: session.rounds.iter().map(|r| RoundView {
             round_id: r.round_id,
             text: r.text.clone(),
+            options: vec![],
         }).collect(),
     }
 }
