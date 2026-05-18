@@ -9,6 +9,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use common::api::{GuessRequest, GuessResponse};
+use common::scoring::{partial_score, score_labels};
 use common::types::{GameMode, Language};
 use crate::game::{GameSession, Round, session_to_view};
 use crate::wikipedia::{fetch_article, WikipediaClient};
@@ -75,9 +76,13 @@ pub async fn post_guess(
         return StatusCode::NOT_FOUND.into_response();
     };
     let correct = round.language == request.language;
+    let score = partial_score(&request.language, &round.language);
+    let labels = score_labels(&request.language, &round.language);
     Json(GuessResponse {
         correct,
         correct_language: round.language.clone(),
+        score,
+        labels,
     }).into_response()
 }
 
@@ -312,6 +317,7 @@ mod tests {
         let result = parse_guess_response(response).await;
         assert!(result.correct);
         assert_eq!(result.correct_language, Language::French);
+        assert_eq!(result.score.total, 1000);
     }
 
     #[tokio::test]
@@ -327,6 +333,36 @@ mod tests {
         let result = parse_guess_response(response).await;
         assert!(!result.correct);
         assert_eq!(result.correct_language, Language::French);
+        // English→French: both Latin (500) + both IE (150) = 650
+        assert_eq!(result.score.total, 650);
+    }
+
+    #[tokio::test]
+    async fn unrelated_guess_scores_zero() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, round_id) = make_session(Language::Japanese, "日本語。");
+        store.lock().unwrap().insert(game_id, session);
+
+        let body = serde_json::json!({ "round_id": round_id, "language": "English" });
+        let response = app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap();
+
+        let result = parse_guess_response(response).await;
+        // English (Latin, IE) vs Japanese (Japanese script, Japonic) = 0
+        assert_eq!(result.score.total, 0);
+    }
+
+    #[tokio::test]
+    async fn guess_response_includes_labels() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, round_id) = make_session(Language::French, "Bonjour.");
+        store.lock().unwrap().insert(game_id, session);
+
+        let body = serde_json::json!({ "round_id": round_id, "language": "Spanish" });
+        let response = app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap();
+
+        let result = parse_guess_response(response).await;
+        assert_eq!(result.labels.script, "Both Latin script");
+        assert_eq!(result.labels.family, "Both Romance languages");
     }
 
     #[tokio::test]

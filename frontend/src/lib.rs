@@ -15,7 +15,7 @@ enum GamePhase {
     Home,
     Loading,
     Playing { game: GameView, mode: GameMode },
-    Finished { score: usize, total: usize },
+    Finished { score: u32 },
     Error(String),
 }
 
@@ -50,19 +50,18 @@ pub fn App() -> impl IntoView {
                     <LoadingScreen />
                 }.into_any(),
                 GamePhase::Playing { game, mode } => {
-                    let total = game.rounds.len();
                     view! {
                         <RoundScreen
                             game=game
                             mode=mode
                             on_finish=Callback::new(move |score| {
-                                phase.set(GamePhase::Finished { score, total });
+                                phase.set(GamePhase::Finished { score });
                             })
                         />
                     }.into_any()
                 },
-                GamePhase::Finished { score, total } => view! {
-                    <FinishedScreen score=score total=total on_play_again=go_home />
+                GamePhase::Finished { score } => view! {
+                    <FinishedScreen score=score on_play_again=go_home />
                 }.into_any(),
                 GamePhase::Error(msg) => view! {
                     <ErrorScreen message=msg />
@@ -171,39 +170,36 @@ fn ErrorScreen(message: String) -> impl IntoView {
 
 #[component]
 fn FinishedScreen(
-    score: usize,
-    total: usize,
+    score: u32,
     on_play_again: impl Fn(leptos::web_sys::MouseEvent) + 'static,
 ) -> impl IntoView {
+    let pct = score * 100 / 5000;
+    let message = match pct {
+        100     => "Perfect — flawless!",
+        80..=99 => "Excellent work!",
+        60..=79 => "Pretty good!",
+        40..=59 => "Getting there.",
+        _       => "Keep practising!",
+    };
     view! {
         <div class="home">
             <h1 class="title">"Game over!"</h1>
-            <p class="score">{score}" / "{total}</p>
-            <p class="subtitle">{score_message(score, total)}</p>
+            <p class="score">{score}" / 5,000"</p>
+            <p class="subtitle">{message}</p>
             <button class="play-btn" on:click=on_play_again>"Play again"</button>
         </div>
     }
 }
 
-fn score_message(score: usize, total: usize) -> &'static str {
-    match score * 100 / total {
-        100          => "Perfect — flawless!",
-        80..=99      => "Excellent work!",
-        60..=79      => "Pretty good!",
-        40..=59      => "Getting there.",
-        _            => "Keep practising!",
-    }
-}
-
 #[component]
-fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<usize>) -> impl IntoView {
+fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<u32>) -> impl IntoView {
     let game_id   = game.game_id;
     let total     = game.rounds.len();
     let rounds    = StoredValue::new(game.rounds);
     let pool      = suggestion_pool(&mode);
 
     let round_index = RwSignal::new(0usize);
-    let score       = RwSignal::new(0usize);
+    let score       = RwSignal::new(0u32);
     let selected    = RwSignal::new(Option::<Language>::None);
     let feedback    = RwSignal::new(Option::<GuessResponse>::None);
     let submitting  = RwSignal::new(false);
@@ -220,7 +216,7 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<usize>) -> im
         spawn_local(async move {
             match submit_guess(game_id, round_id, lang).await {
                 Ok(result) => {
-                    if result.correct { score.update(|s| *s += 1); }
+                    score.update(|s| *s += result.score.total);
                     feedback.set(Some(result));
                     submitting.set(false);
                 }
@@ -267,18 +263,43 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<usize>) -> im
 
             <Show when=move || feedback.get().is_some()>
                 {move || feedback.get().map(|f| {
-                    if f.correct {
-                        view! {
-                            <div class="feedback correct">"✓ Correct!"</div>
-                        }.into_any()
+                    let header = if f.correct {
+                        "✓ Correct!".to_string()
                     } else {
-                        view! {
-                            <div class="feedback wrong">
-                                "✗ Wrong — it was "
-                                <strong>{f.correct_language.label().to_string()}</strong>
+                        format!("✗ Wrong — it was {}", f.correct_language.label())
+                    };
+                    let header_class = if f.correct { "feedback correct" } else { "feedback wrong" };
+                    let script_score  = f.score.script;
+                    let family_score  = f.score.family;
+                    let total_score   = f.score.total;
+                    let script_label  = f.labels.script.clone();
+                    let family_label  = f.labels.family.clone();
+                    view! {
+                        <div class=header_class>
+                            <p class="feedback-header">{header}</p>
+                            <div class="score-axis">
+                                <span class="axis-name">"Script"</span>
+                                <div class="axis-bar">
+                                    <div class="axis-fill"
+                                        style=format!("width: {}%", script_score / 5)>
+                                    </div>
+                                </div>
+                                <span class="axis-score">{script_score}" / 500"</span>
+                                <span class="axis-desc">{script_label}</span>
                             </div>
-                        }.into_any()
-                    }
+                            <div class="score-axis">
+                                <span class="axis-name">"Family"</span>
+                                <div class="axis-bar">
+                                    <div class="axis-fill"
+                                        style=format!("width: {}%", family_score / 5)>
+                                    </div>
+                                </div>
+                                <span class="axis-score">{family_score}" / 500"</span>
+                                <span class="axis-desc">{family_label}</span>
+                            </div>
+                            <p class="score-total">{total_score}" / 1,000"</p>
+                        </div>
+                    }.into_any()
                 })}
                 <button class="next-btn" on:click=on_next>
                     {move || if round_index.get() + 1 >= total { "See my score" } else { "Next →" }}
@@ -360,68 +381,5 @@ mod tests {
     #[test]
     fn suggestion_pool_hard_returns_75() {
         assert_eq!(suggestion_pool(&GameMode::Hard).len(), 75);
-    }
-
-    // --- score_message ---
-
-    #[test]
-    fn zero_out_of_five_is_keep_practising() {
-        assert_eq!(score_message(0, 5), "Keep practising!");
-    }
-    #[test]
-    fn one_out_of_five_is_keep_practising() {
-        assert_eq!(score_message(1, 5), "Keep practising!");
-    }
-    #[test]
-    fn two_out_of_five_is_getting_there() {
-        assert_eq!(score_message(2, 5), "Getting there.");
-    }
-    #[test]
-    fn three_out_of_five_is_pretty_good() {
-        assert_eq!(score_message(3, 5), "Pretty good!");
-    }
-    #[test]
-    fn four_out_of_five_is_excellent() {
-        assert_eq!(score_message(4, 5), "Excellent work!");
-    }
-    #[test]
-    fn five_out_of_five_is_perfect() {
-        assert_eq!(score_message(5, 5), "Perfect — flawless!");
-    }
-    #[test]
-    fn exactly_100_percent_is_perfect() {
-        assert_eq!(score_message(100, 100), "Perfect — flawless!");
-    }
-    #[test]
-    fn exactly_99_percent_is_excellent() {
-        assert_eq!(score_message(99, 100), "Excellent work!");
-    }
-    #[test]
-    fn exactly_80_percent_is_excellent() {
-        assert_eq!(score_message(80, 100), "Excellent work!");
-    }
-    #[test]
-    fn exactly_79_percent_is_pretty_good() {
-        assert_eq!(score_message(79, 100), "Pretty good!");
-    }
-    #[test]
-    fn exactly_60_percent_is_pretty_good() {
-        assert_eq!(score_message(60, 100), "Pretty good!");
-    }
-    #[test]
-    fn exactly_59_percent_is_getting_there() {
-        assert_eq!(score_message(59, 100), "Getting there.");
-    }
-    #[test]
-    fn exactly_40_percent_is_getting_there() {
-        assert_eq!(score_message(40, 100), "Getting there.");
-    }
-    #[test]
-    fn exactly_39_percent_is_keep_practising() {
-        assert_eq!(score_message(39, 100), "Keep practising!");
-    }
-    #[test]
-    fn zero_percent_is_keep_practising() {
-        assert_eq!(score_message(0, 100), "Keep practising!");
     }
 }

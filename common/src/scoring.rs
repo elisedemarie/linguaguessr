@@ -14,7 +14,7 @@ pub struct ScoreBreakdown {
     pub total: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ScoreLabels {
     pub script: String,
     pub family: String,
