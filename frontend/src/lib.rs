@@ -251,18 +251,54 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<usize>) -> im
             </div>
 
             <Show when=move || feedback.get().is_none()>
-                <LanguageCombobox
-                    query=query
-                    pool=pool
-                    on_select=Callback::new(move |lang| selected.set(Some(lang)))
-                />
-                <button
-                    class="submit-btn"
-                    prop:disabled=move || selected.get().is_none() || submitting.get()
-                    on:click=on_submit
-                >
-                    {move || if submitting.get() { "Submitting..." } else { "Submit" }}
-                </button>
+                {move || {
+                    let round = current_round.get();
+                    if round.options.is_empty() {
+                        view! {
+                            <div>
+                                <LanguageCombobox
+                                    query=query
+                                    pool=pool
+                                    on_select=Callback::new(move |lang| selected.set(Some(lang)))
+                                />
+                                <button
+                                    class="submit-btn"
+                                    prop:disabled=move || selected.get().is_none() || submitting.get()
+                                    on:click=on_submit
+                                >
+                                    {move || if submitting.get() { "Submitting..." } else { "Submit" }}
+                                </button>
+                            </div>
+                        }.into_any()
+                    } else {
+                        let options = round.options.clone();
+                        view! {
+                            <div class="option-buttons">
+                                {options.into_iter().map(|lang| {
+                                    let label = lang.label().to_string();
+                                    let lang_for_click = lang.clone();
+                                    let is_selected = move || selected.get().as_ref() == Some(&lang);
+                                    view! {
+                                        <button
+                                            class="option-btn"
+                                            class:selected=is_selected
+                                            on:click=move |_| selected.set(Some(lang_for_click.clone()))
+                                        >
+                                            {label}
+                                        </button>
+                                    }
+                                }).collect::<Vec<_>>()}
+                                <button
+                                    class="submit-btn"
+                                    prop:disabled=move || selected.get().is_none() || submitting.get()
+                                    on:click=on_submit
+                                >
+                                    {move || if submitting.get() { "Submitting..." } else { "Submit" }}
+                                </button>
+                            </div>
+                        }.into_any()
+                    }
+                }}
             </Show>
 
             <Show when=move || feedback.get().is_some()>
