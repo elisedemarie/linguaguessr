@@ -355,8 +355,8 @@ mod tests {
         let result = parse_guess_response(response).await;
         assert!(!result.correct);
         assert_eq!(result.correct_language, Language::French);
-        // English→French: both Latin (500) + both IE (150) = 650
-        assert_eq!(result.score.total, 650);
+        // English→French: Latin Jaccard 26/41 → 317 + IE-only family 1/5 → 90 = 407
+        assert_eq!(result.score.total, 407);
     }
 
     #[tokio::test]
