@@ -9,25 +9,29 @@
 # this file. A developer will review and apply it.
 #
 # Fields per language:
-#   script     — the writing system used
-#   family     — the top-level language family
-#   branch     — the sub-group within the family
-#   sub_branch — the closest grouping (siblings score highest partial credit)
-#   notes      — optional explanation for non-obvious decisions
+#   script       — the writing system used
+#   script_chars — lowercase characters that appear in this language's text
+#                  (used to compute visual similarity via Jaccard overlap)
+#                  omit for logographic or single-language scripts
+#   family       — the top-level language family
+#   branch       — the sub-group within the family
+#   sub_branch   — the closest grouping (siblings score highest partial credit)
+#   notes        — optional explanation for non-obvious decisions
 
 # ---------------------------------------------------------------------------
 # Scoring rules
-# Changing these values changes how much partial credit each tier is worth.
+#   script_max — maximum script axis score (same chars = this value)
+#   family_max — maximum family axis score (same sub-branch = this value)
+# Both axes use Jaccard similarity, so scores are continuous not tiered.
 # ---------------------------------------------------------------------------
 
 [scoring]
-same_script     = 500   # Guessed the right writing system
-same_sub_branch = 450   # Very closely related (e.g. Spanish → Portuguese)
-same_branch     = 300   # Same language group (e.g. Italian → Spanish, both Romance)
-same_family     = 150   # Distant relatives (e.g. English → Hindi, both Indo-European)
-unrelated       = 0     # No known linguistic connection
+script_max = 500   # Maximum when scripts are character-for-character identical
+family_max = 450   # Maximum when languages share the same sub-branch
+unrelated  = 0     # Score when no script or family connection exists
 
 # Special script cases — pairs that partially share a writing system
+# (used when the two languages are in different script groups)
 [[scoring.script_special_cases]]
 languages = ["Chinese", "Japanese"]
 score     = 250
@@ -38,516 +42,569 @@ reason    = "Japanese uses Chinese characters (kanji) alongside its own kana scr
 # ---------------------------------------------------------------------------
 
 [languages.Spanish]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Romance"
-sub_branch = "Iberian Romance"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzáéíóúüñ"
+family       = "Indo-European"
+branch       = "Romance"
+sub_branch   = "Iberian Romance"
 
 [languages.Portuguese]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Romance"
-sub_branch = "Iberian Romance"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú"
+family       = "Indo-European"
+branch       = "Romance"
+sub_branch   = "Iberian Romance"
 
 [languages.Catalan]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Romance"
-sub_branch = "Iberian Romance"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzàçéèíïóòúü"
+family       = "Indo-European"
+branch       = "Romance"
+sub_branch   = "Iberian Romance"
 
 [languages.Galician]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Romance"
-sub_branch = "Iberian Romance"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzáéíóúüñ"
+family       = "Indo-European"
+branch       = "Romance"
+sub_branch   = "Iberian Romance"
 
 [languages.French]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Romance"
-sub_branch = "Gallo-Romance"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzàâæçéèêëîïôœùûü"
+family       = "Indo-European"
+branch       = "Romance"
+sub_branch   = "Gallo-Romance"
 
 [languages.Italian]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Romance"
-sub_branch = "Italo-Romance"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzàèéìíîòóùú"
+family       = "Indo-European"
+branch       = "Romance"
+sub_branch   = "Italo-Romance"
 
 [languages.Romanian]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Romance"
-sub_branch = "Eastern Romance"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzăâîșț"
+family       = "Indo-European"
+branch       = "Romance"
+sub_branch   = "Eastern Romance"
 
 # ---------------------------------------------------------------------------
 # Indo-European — Germanic
 # ---------------------------------------------------------------------------
 
 [languages.English]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Germanic"
-sub_branch = "West Germanic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyz"
+family       = "Indo-European"
+branch       = "Germanic"
+sub_branch   = "West Germanic"
 
 [languages.German]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Germanic"
-sub_branch = "West Germanic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzäöüß"
+family       = "Indo-European"
+branch       = "Germanic"
+sub_branch   = "West Germanic"
 
 [languages.Dutch]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Germanic"
-sub_branch = "West Germanic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzëïöü"
+family       = "Indo-European"
+branch       = "Germanic"
+sub_branch   = "West Germanic"
 
 [languages.Afrikaans]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Germanic"
-sub_branch = "West Germanic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzáêëéèîïôöûü"
+family       = "Indo-European"
+branch       = "Germanic"
+sub_branch   = "West Germanic"
 
 [languages.Swedish]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Germanic"
-sub_branch = "North Germanic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzåäö"
+family       = "Indo-European"
+branch       = "Germanic"
+sub_branch   = "North Germanic"
 
 [languages.Danish]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Germanic"
-sub_branch = "North Germanic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzæøå"
+family       = "Indo-European"
+branch       = "Germanic"
+sub_branch   = "North Germanic"
 
 [languages.Norwegian]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Germanic"
-sub_branch = "North Germanic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzæøå"
+family       = "Indo-European"
+branch       = "Germanic"
+sub_branch   = "North Germanic"
 
 [languages.Icelandic]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Germanic"
-sub_branch = "North Germanic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzáðéíóúýþæö"
+family       = "Indo-European"
+branch       = "Germanic"
+sub_branch   = "North Germanic"
 
 # ---------------------------------------------------------------------------
 # Indo-European — Slavic
 # ---------------------------------------------------------------------------
 
 [languages.Russian]
-script     = "Cyrillic"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "East Slavic"
+script       = "Cyrillic"
+script_chars = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "East Slavic"
 
 [languages.Ukrainian]
-script     = "Cyrillic"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "East Slavic"
+script       = "Cyrillic"
+script_chars = "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "East Slavic"
 
 [languages.Belarusian]
-script     = "Cyrillic"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "East Slavic"
+script       = "Cyrillic"
+script_chars = "абвгдеёжзійклмнопрстуўфхцчшыьэюя"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "East Slavic"
 
 [languages.Bulgarian]
-script     = "Cyrillic"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "South Slavic"
+script       = "Cyrillic"
+script_chars = "абвгдежзийклмнопрстуфхцчшщъьюя"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "South Slavic"
 
 [languages.Serbian]
-script     = "Cyrillic"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "South Slavic"
+script       = "Cyrillic"
+script_chars = "абвгдђежзијклљмнњопрстћуфхцчџш"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "South Slavic"
 
 [languages.Croatian]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "South Slavic"
-notes      = "Uses Latin script; Serbian is its closest relative but uses Cyrillic. Self-determination: scored as distinct languages."
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzčćđšž"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "South Slavic"
+notes        = "Uses Latin script; Serbian is its closest relative but uses Cyrillic. Self-determination: scored as distinct languages."
 
 [languages.Slovenian]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "South Slavic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzčšž"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "South Slavic"
 
 [languages.Macedonian]
-script     = "Cyrillic"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "South Slavic"
+script       = "Cyrillic"
+script_chars = "абвгдѓежзѕијклљмнњопрсстќуфхцчџш"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "South Slavic"
 
 [languages.Polish]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "West Slavic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyząćęłńóśźż"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "West Slavic"
 
 [languages.Czech]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "West Slavic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzáčďéěíňóřšťúůýž"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "West Slavic"
 
 [languages.Slovak]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Slavic"
-sub_branch = "West Slavic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzáäčďéíĺľňóôŕšťúýž"
+family       = "Indo-European"
+branch       = "Slavic"
+sub_branch   = "West Slavic"
 
 # ---------------------------------------------------------------------------
 # Indo-European — Indo-Iranian
 # ---------------------------------------------------------------------------
 
 [languages.Hindi]
-script     = "Devanagari"
-family     = "Indo-European"
-branch     = "Indo-Iranian"
-sub_branch = "Indo-Aryan"
-notes      = "Self-determination: scored separately from Urdu despite shared spoken roots. Different scripts reflect different cultural identities."
-
-[languages.Urdu]
-script     = "Arabic"
-family     = "Indo-European"
-branch     = "Indo-Iranian"
-sub_branch = "Indo-Aryan"
-notes      = "Self-determination: scored separately from Hindi despite shared spoken roots. Different scripts reflect different cultural identities."
-
-[languages.Bengali]
-script     = "Bengali"
-family     = "Indo-European"
-branch     = "Indo-Iranian"
-sub_branch = "Indo-Aryan"
+script       = "Devanagari"
+script_chars = "अआइईउऊऋएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसहािीुूृेैोौंःँ्"
+family       = "Indo-European"
+branch       = "Indo-Iranian"
+sub_branch   = "Indo-Aryan"
+notes        = "Self-determination: scored separately from Urdu despite shared spoken roots."
 
 [languages.Marathi]
-script     = "Devanagari"
-family     = "Indo-European"
-branch     = "Indo-Iranian"
-sub_branch = "Indo-Aryan"
-
-[languages.Punjabi]
-script     = "Gurmukhi"
-family     = "Indo-European"
-branch     = "Indo-Iranian"
-sub_branch = "Indo-Aryan"
-
-[languages.Gujarati]
-script     = "Gujarati"
-family     = "Indo-European"
-branch     = "Indo-Iranian"
-sub_branch = "Indo-Aryan"
-
-[languages.Odia]
-script     = "Odia"
-family     = "Indo-European"
-branch     = "Indo-Iranian"
-sub_branch = "Indo-Aryan"
+script       = "Devanagari"
+script_chars = "अआइईउऊऋएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसहळािीुूृेैोौंःँ्"
+family       = "Indo-European"
+branch       = "Indo-Iranian"
+sub_branch   = "Indo-Aryan"
 
 [languages.Nepali]
-script     = "Devanagari"
-family     = "Indo-European"
-branch     = "Indo-Iranian"
-sub_branch = "Indo-Aryan"
+script       = "Devanagari"
+script_chars = "अआइईउऊऋएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसहािीुूृेैोौंःँ्"
+family       = "Indo-European"
+branch       = "Indo-Iranian"
+sub_branch   = "Indo-Aryan"
+
+[languages.Urdu]
+script       = "Arabic"
+script_chars = "ابتثجحخدذرزسشصضطظعغفقكلمنهويپٹڈڑژکگ"
+family       = "Indo-European"
+branch       = "Indo-Iranian"
+sub_branch   = "Indo-Aryan"
+notes        = "Self-determination: scored separately from Hindi despite shared spoken roots."
+
+[languages.Bengali]
+script       = "Bengali"
+family       = "Indo-European"
+branch       = "Indo-Iranian"
+sub_branch   = "Indo-Aryan"
+
+[languages.Punjabi]
+script       = "Gurmukhi"
+family       = "Indo-European"
+branch       = "Indo-Iranian"
+sub_branch   = "Indo-Aryan"
+
+[languages.Gujarati]
+script       = "Gujarati"
+family       = "Indo-European"
+branch       = "Indo-Iranian"
+sub_branch   = "Indo-Aryan"
+
+[languages.Odia]
+script       = "Odia"
+family       = "Indo-European"
+branch       = "Indo-Iranian"
+sub_branch   = "Indo-Aryan"
 
 [languages.Sinhala]
-script     = "Sinhala"
-family     = "Indo-European"
-branch     = "Indo-Iranian"
-sub_branch = "Indo-Aryan"
+script       = "Sinhala"
+family       = "Indo-European"
+branch       = "Indo-Iranian"
+sub_branch   = "Indo-Aryan"
 
 [languages.Persian]
-script     = "Arabic"
-family     = "Indo-European"
-branch     = "Indo-Iranian"
-sub_branch = "Iranian"
+script       = "Arabic"
+script_chars = "ابتثجحخدذرزسشصضطظعغفقكلمنهويپچژگ"
+family       = "Indo-European"
+branch       = "Indo-Iranian"
+sub_branch   = "Iranian"
 
 # ---------------------------------------------------------------------------
 # Indo-European — other branches
 # ---------------------------------------------------------------------------
 
 [languages.Lithuanian]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Baltic"
-sub_branch = "Baltic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyząčęėįšųūž"
+family       = "Indo-European"
+branch       = "Baltic"
+sub_branch   = "Baltic"
 
 [languages.Latvian]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Baltic"
-sub_branch = "Baltic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzāčēģīķļņšūž"
+family       = "Indo-European"
+branch       = "Baltic"
+sub_branch   = "Baltic"
 
 [languages.Welsh]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Celtic"
-sub_branch = "Celtic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzâêîôûŵŷ"
+family       = "Indo-European"
+branch       = "Celtic"
+sub_branch   = "Celtic"
 
 [languages.Irish]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Celtic"
-sub_branch = "Celtic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzáéíóú"
+family       = "Indo-European"
+branch       = "Celtic"
+sub_branch   = "Celtic"
 
 [languages.Greek]
-script     = "Greek"
-family     = "Indo-European"
-branch     = "Hellenic"
-sub_branch = "Hellenic"
+script       = "Greek"
+family       = "Indo-European"
+branch       = "Hellenic"
+sub_branch   = "Hellenic"
 
 [languages.Albanian]
-script     = "Latin"
-family     = "Indo-European"
-branch     = "Albanian"
-sub_branch = "Albanian"
-notes      = "Its own branch within Indo-European with no close living relatives."
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzçë"
+family       = "Indo-European"
+branch       = "Albanian"
+sub_branch   = "Albanian"
+notes        = "Its own branch within Indo-European with no close living relatives."
 
 [languages.Armenian]
-script     = "Armenian"
-family     = "Indo-European"
-branch     = "Armenian"
-sub_branch = "Armenian"
-notes      = "Its own branch within Indo-European with no close living relatives."
+script       = "Armenian"
+family       = "Indo-European"
+branch       = "Armenian"
+sub_branch   = "Armenian"
+notes        = "Its own branch within Indo-European with no close living relatives."
 
 # ---------------------------------------------------------------------------
 # Afro-Asiatic
 # ---------------------------------------------------------------------------
 
 [languages.Arabic]
-script     = "Arabic"
-family     = "Afro-Asiatic"
-branch     = "Semitic"
-sub_branch = "Central Semitic"
+script       = "Arabic"
+script_chars = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي"
+family       = "Afro-Asiatic"
+branch       = "Semitic"
+sub_branch   = "Central Semitic"
 
 [languages.Hebrew]
-script     = "Hebrew"
-family     = "Afro-Asiatic"
-branch     = "Semitic"
-sub_branch = "Northwest Semitic"
+script       = "Hebrew"
+family       = "Afro-Asiatic"
+branch       = "Semitic"
+sub_branch   = "Northwest Semitic"
 
 [languages.Amharic]
-script     = "Ethiopic"
-family     = "Afro-Asiatic"
-branch     = "Semitic"
-sub_branch = "South Semitic"
+script       = "Ethiopic"
+family       = "Afro-Asiatic"
+branch       = "Semitic"
+sub_branch   = "South Semitic"
 
 [languages.Hausa]
-script     = "Latin"
-family     = "Afro-Asiatic"
-branch     = "Chadic"
-sub_branch = "Chadic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzɓɗƙ"
+family       = "Afro-Asiatic"
+branch       = "Chadic"
+sub_branch   = "Chadic"
+
+[languages.Somali]
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyz"
+family       = "Afro-Asiatic"
+branch       = "Cushitic"
+sub_branch   = "Cushitic"
 
 # ---------------------------------------------------------------------------
 # Turkic
 # ---------------------------------------------------------------------------
 
 [languages.Turkish]
-script     = "Latin"
-family     = "Turkic"
-branch     = "Oghuz"
-sub_branch = "Oghuz"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzçğışöü"
+family       = "Turkic"
+branch       = "Oghuz"
+sub_branch   = "Oghuz"
 
 [languages.Azerbaijani]
-script     = "Latin"
-family     = "Turkic"
-branch     = "Oghuz"
-sub_branch = "Oghuz"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzçəğışöü"
+family       = "Turkic"
+branch       = "Oghuz"
+sub_branch   = "Oghuz"
 
 [languages.Kazakh]
-script     = "Cyrillic"
-family     = "Turkic"
-branch     = "Kipchak"
-sub_branch = "Kipchak"
+script       = "Cyrillic"
+script_chars = "абвгдеёжзийклмнопрстуфхцчшщыьэюяәғқңөұүһ"
+family       = "Turkic"
+branch       = "Kipchak"
+sub_branch   = "Kipchak"
 
 [languages.Uzbek]
-script     = "Latin"
-family     = "Turkic"
-branch     = "Karluk"
-sub_branch = "Karluk"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzʻ"
+family       = "Turkic"
+branch       = "Karluk"
+sub_branch   = "Karluk"
 
 # ---------------------------------------------------------------------------
 # Dravidian
 # ---------------------------------------------------------------------------
 
 [languages.Tamil]
-script     = "Tamil"
-family     = "Dravidian"
-branch     = "South Dravidian"
-sub_branch = "South Dravidian"
+script       = "Tamil"
+family       = "Dravidian"
+branch       = "South Dravidian"
+sub_branch   = "South Dravidian"
 
 [languages.Telugu]
-script     = "Telugu"
-family     = "Dravidian"
-branch     = "South Dravidian"
-sub_branch = "South Dravidian"
+script       = "Telugu"
+family       = "Dravidian"
+branch       = "South Dravidian"
+sub_branch   = "South Dravidian"
 
 [languages.Kannada]
-script     = "Kannada"
-family     = "Dravidian"
-branch     = "South Dravidian"
-sub_branch = "South Dravidian"
+script       = "Kannada"
+family       = "Dravidian"
+branch       = "South Dravidian"
+sub_branch   = "South Dravidian"
 
 [languages.Malayalam]
-script     = "Malayalam"
-family     = "Dravidian"
-branch     = "South Dravidian"
-sub_branch = "South Dravidian"
+script       = "Malayalam"
+family       = "Dravidian"
+branch       = "South Dravidian"
+sub_branch   = "South Dravidian"
 
 # ---------------------------------------------------------------------------
 # Austronesian
 # ---------------------------------------------------------------------------
 
 [languages.Indonesian]
-script     = "Latin"
-family     = "Austronesian"
-branch     = "Malayo-Polynesian"
-sub_branch = "Malayo-Polynesian"
-notes      = "Self-determination: scored separately from Malay despite very high mutual intelligibility."
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyz"
+family       = "Austronesian"
+branch       = "Malayo-Polynesian"
+sub_branch   = "Malayo-Polynesian"
+notes        = "Self-determination: scored separately from Malay."
 
 [languages.Malay]
-script     = "Latin"
-family     = "Austronesian"
-branch     = "Malayo-Polynesian"
-sub_branch = "Malayo-Polynesian"
-notes      = "Self-determination: scored separately from Indonesian despite very high mutual intelligibility."
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyz"
+family       = "Austronesian"
+branch       = "Malayo-Polynesian"
+sub_branch   = "Malayo-Polynesian"
+notes        = "Self-determination: scored separately from Indonesian."
 
 [languages.Tagalog]
-script     = "Latin"
-family     = "Austronesian"
-branch     = "Malayo-Polynesian"
-sub_branch = "Malayo-Polynesian"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyz"
+family       = "Austronesian"
+branch       = "Malayo-Polynesian"
+sub_branch   = "Malayo-Polynesian"
 
 # ---------------------------------------------------------------------------
 # Niger-Congo
 # ---------------------------------------------------------------------------
 
 [languages.Swahili]
-script     = "Latin"
-family     = "Niger-Congo"
-branch     = "Bantu"
-sub_branch = "Bantu"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyz"
+family       = "Niger-Congo"
+branch       = "Bantu"
+sub_branch   = "Bantu"
 
 [languages.Zulu]
-script     = "Latin"
-family     = "Niger-Congo"
-branch     = "Bantu"
-sub_branch = "Bantu"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyz"
+family       = "Niger-Congo"
+branch       = "Bantu"
+sub_branch   = "Bantu"
 
 [languages.Yoruba]
-script     = "Latin"
-family     = "Niger-Congo"
-branch     = "Volta-Congo"
-sub_branch = "Volta-Congo"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzàáèéẹìíọòóùú"
+family       = "Niger-Congo"
+branch       = "Volta-Congo"
+sub_branch   = "Volta-Congo"
 
 # ---------------------------------------------------------------------------
 # Sino-Tibetan
 # ---------------------------------------------------------------------------
 
 [languages.Chinese]
-script     = "CJK Chinese"
-family     = "Sino-Tibetan"
-branch     = "Sinitic"
-sub_branch = "Sinitic"
+script       = "CJK Chinese"
+family       = "Sino-Tibetan"
+branch       = "Sinitic"
+sub_branch   = "Sinitic"
 
 [languages.Burmese]
-script     = "Myanmar"
-family     = "Sino-Tibetan"
-branch     = "Tibeto-Burman"
-sub_branch = "Tibeto-Burman"
+script       = "Myanmar"
+family       = "Sino-Tibetan"
+branch       = "Tibeto-Burman"
+sub_branch   = "Tibeto-Burman"
 
 # ---------------------------------------------------------------------------
 # Austro-Asiatic
 # ---------------------------------------------------------------------------
 
 [languages.Vietnamese]
-script     = "Latin"
-family     = "Austro-Asiatic"
-branch     = "Mon-Khmer"
-sub_branch = "Mon-Khmer"
+script       = "Latin"
+script_chars = "abcdeghiklmnoprnstuyvàáâãèéêìíòóôõùúýăđơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỷỹ"
+family       = "Austro-Asiatic"
+branch       = "Mon-Khmer"
+sub_branch   = "Mon-Khmer"
 
 [languages.Khmer]
-script     = "Khmer"
-family     = "Austro-Asiatic"
-branch     = "Mon-Khmer"
-sub_branch = "Mon-Khmer"
+script       = "Khmer"
+family       = "Austro-Asiatic"
+branch       = "Mon-Khmer"
+sub_branch   = "Mon-Khmer"
 
 # ---------------------------------------------------------------------------
 # Language isolates and small families
-# Each of these has no close relatives in our language set.
-# They only score family points against themselves (correct answer).
 # ---------------------------------------------------------------------------
 
 [languages.Japanese]
-script     = "Japanese"
-family     = "Japonic"
-branch     = "Japonic"
-sub_branch = "Japonic"
-notes      = "Language isolate — no proven relatives outside the Ryukyuan languages."
+script       = "Japanese"
+family       = "Japonic"
+branch       = "Japonic"
+sub_branch   = "Japonic"
+notes        = "Language isolate — no proven relatives outside the Ryukyuan languages."
 
 [languages.Korean]
-script     = "Korean"
-family     = "Koreanic"
-branch     = "Koreanic"
-sub_branch = "Koreanic"
-notes      = "Language isolate — no proven relatives."
+script       = "Korean"
+family       = "Koreanic"
+branch       = "Koreanic"
+sub_branch   = "Koreanic"
+notes        = "Language isolate — no proven relatives."
 
 [languages.Georgian]
-script     = "Georgian"
-family     = "Kartvelian"
-branch     = "Kartvelian"
-sub_branch = "Kartvelian"
+script       = "Georgian"
+family       = "Kartvelian"
+branch       = "Kartvelian"
+sub_branch   = "Kartvelian"
 
 [languages.Mongolian]
-script     = "Cyrillic"
-family     = "Mongolic"
-branch     = "Mongolic"
-sub_branch = "Mongolic"
-notes      = "Uses Cyrillic script in modern Mongolia. Traditional Mongolian script is still used in Inner Mongolia."
+script       = "Cyrillic"
+script_chars = "абвгдеёжзийклмнопрстуфхцчшщыьэюяөү"
+family       = "Mongolic"
+branch       = "Mongolic"
+sub_branch   = "Mongolic"
+notes        = "Uses Cyrillic script in modern Mongolia."
 
 [languages.Basque]
-script     = "Latin"
-family     = "Basque"
-branch     = "Basque"
-sub_branch = "Basque"
-notes      = "Language isolate — no known linguistic relatives anywhere in the world."
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzñ"
+family       = "Basque"
+branch       = "Basque"
+sub_branch   = "Basque"
+notes        = "Language isolate — no known linguistic relatives anywhere in the world."
 
 # ---------------------------------------------------------------------------
 # Other families
 # ---------------------------------------------------------------------------
 
 [languages.Thai]
-script     = "Thai"
-family     = "Tai-Kadai"
-branch     = "Tai"
-sub_branch = "Tai"
+script       = "Thai"
+family       = "Tai-Kadai"
+branch       = "Tai"
+sub_branch   = "Tai"
 
 [languages.Finnish]
-script     = "Latin"
-family     = "Uralic"
-branch     = "Finno-Ugric"
-sub_branch = "Finnic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzäö"
+family       = "Uralic"
+branch       = "Finno-Ugric"
+sub_branch   = "Finnic"
 
 [languages.Estonian]
-script     = "Latin"
-family     = "Uralic"
-branch     = "Finno-Ugric"
-sub_branch = "Finnic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzäöüõ"
+family       = "Uralic"
+branch       = "Finno-Ugric"
+sub_branch   = "Finnic"
 
 [languages.Hungarian]
-script     = "Latin"
-family     = "Uralic"
-branch     = "Finno-Ugric"
-sub_branch = "Ugric"
-
-[languages.Somali]
-script     = "Latin"
-family     = "Afro-Asiatic"
-branch     = "Cushitic"
-sub_branch = "Cushitic"
+script       = "Latin"
+script_chars = "abcdefghijklmnopqrstuvwxyzáéíóöőúüű"
+family       = "Uralic"
+branch       = "Finno-Ugric"
+sub_branch   = "Ugric"
