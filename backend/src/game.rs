@@ -1,5 +1,5 @@
 use common::api::{GameView, RoundView};
-use common::types::Language;
+use common::types::{GameMode, Language};
 use uuid::Uuid;
 
 pub struct Round {
@@ -10,6 +10,7 @@ pub struct Round {
 
 pub struct GameSession {
     pub game_id: Uuid,
+    pub mode: GameMode,
     pub rounds: Vec<Round>,
 }
 
@@ -36,7 +37,7 @@ mod tests {
             Round { round_id: Uuid::new_v4(), text: "Bonjour le monde.".into(), language: Language::French },
             Round { round_id: Uuid::new_v4(), text: "Hello world.".into(), language: Language::English },
         ];
-        GameSession { game_id, rounds }
+        GameSession { game_id, mode: GameMode::Medium, rounds }
     }
 
     #[test]
