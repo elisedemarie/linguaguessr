@@ -338,7 +338,7 @@ body {
 .axis-desc {
   grid-column: 2 / 4;
   font-size: 0.78rem;
-  opacity: 0.6;
+  opacity: 0.85;
 }
 
 .axis-name .tooltip {
@@ -347,7 +347,7 @@ body {
   bottom: calc(100% + 6px);
   left: 0;
   width: 210px;
-  background: var(--surface-raised);
+  background: var(--bg);
   color: var(--text);
   font-size: 0.75rem;
   font-weight: 400;
