@@ -152,14 +152,14 @@ pub async fn fetch_article_from(
 ) -> Result<String, FetchError> {
     let url = format!("{}/api/rest_v1/page/random/summary", base_url.trim_end_matches('/'));
 
-    for _ in 0..MAX_ATTEMPTS {
+    for attempt in 0..MAX_ATTEMPTS {
         let extract = client.fetch_summary(&url).await?;
         let truncated = truncate_extract(&extract);
-        if truncated.len() >= MIN_CHARS {
+        if truncated.len() >= MIN_CHARS || attempt == MAX_ATTEMPTS - 1 {
             return Ok(truncated);
         }
     }
-    Err(FetchError::TooShort)
+    unreachable!()
 }
 
 pub async fn fetch_article(lang: &Language, client: &dyn WikipediaClient) -> Result<String, FetchError> {
@@ -384,7 +384,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn returns_too_short_error_after_three_short_extracts() {
+    async fn last_attempt_returns_short_extract_rather_than_error() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .respond_with(ResponseTemplate::new(200)
@@ -394,7 +394,7 @@ mod tests {
 
         let client = ReqwestWikipediaClient::new();
         let result = fetch_article_from(&Language::English, &client, &server.uri()).await;
-        assert!(matches!(result, Err(FetchError::TooShort)));
+        assert_eq!(result.unwrap(), short_extract());
     }
 
     #[tokio::test]
