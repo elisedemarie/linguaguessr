@@ -290,6 +290,34 @@ body {
   opacity: 0.8;
 }
 
+.axis-name {
+  position: relative;
+  cursor: help;
+}
+
+.axis-name .tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  width: 210px;
+  background: #333;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.4;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.axis-name:hover .tooltip {
+  display: block;
+}
+
 .score-total {
   font-size: 1rem;
   font-weight: 700;

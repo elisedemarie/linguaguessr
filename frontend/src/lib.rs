@@ -137,6 +137,14 @@ fn show_score_breakdown(mode: &GameMode) -> bool {
     *mode != GameMode::Easy
 }
 
+fn script_tooltip_text() -> &'static str {
+    "How similar was the script of your guess to the answer?"
+}
+
+fn family_tooltip_text() -> &'static str {
+    "How closely related was the language of your guess to the answer?"
+}
+
 fn suggestion_pool(mode: &GameMode) -> &'static [Language] {
     match mode {
         GameMode::Easy   => Language::easy_pool(),
@@ -337,7 +345,10 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<u32>) -> impl
                             <div class=header_class>
                                 <p class="feedback-header">{header}</p>
                                 <div class="score-axis">
-                                    <span class="axis-name">"Script"</span>
+                                    <span class="axis-name">
+                                        "Script"
+                                        <span class="tooltip">{script_tooltip_text()}</span>
+                                    </span>
                                     <div class="axis-bar">
                                         <div class="axis-fill"
                                             style=format!("width: {}%", script_score / 5)>
@@ -347,7 +358,10 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<u32>) -> impl
                                     <span class="axis-desc">{script_label}</span>
                                 </div>
                                 <div class="score-axis">
-                                    <span class="axis-name">"Family"</span>
+                                    <span class="axis-name">
+                                        "Family"
+                                        <span class="tooltip">{family_tooltip_text()}</span>
+                                    </span>
                                     <div class="axis-bar">
                                         <div class="axis-fill"
                                             style=format!("width: {}%", family_score / 5)>
@@ -482,6 +496,18 @@ mod tests {
     #[test]
     fn show_score_breakdown_is_true_for_hard() {
         assert!(show_score_breakdown(&GameMode::Hard));
+    }
+
+    // --- tooltip copy ---
+
+    #[test]
+    fn script_tooltip_text_is_correct() {
+        assert_eq!(script_tooltip_text(), "How similar was the script of your guess to the answer?");
+    }
+
+    #[test]
+    fn family_tooltip_text_is_correct() {
+        assert_eq!(family_tooltip_text(), "How closely related was the language of your guess to the answer?");
     }
 
     // --- mode_str ---
