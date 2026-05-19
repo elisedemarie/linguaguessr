@@ -5,7 +5,7 @@ use leptos::prelude::*;
 pub fn HomeScreen(on_play: Callback<GameMode>) -> impl IntoView {
     view! {
         <div class="home">
-            <h1 class="title">"LinguaGuessr"</h1>
+            <h1 class="title"><span class="title-accent">"Lingua"</span>"Guessr"</h1>
             <p class="subtitle">"Can you identify the language?"</p>
             <div class="mode-buttons">
                 <button class="mode-btn easy"
