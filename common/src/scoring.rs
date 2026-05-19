@@ -33,8 +33,6 @@ struct LanguageEntry {
     family: String,
     branch: String,
     sub_branch: String,
-    #[allow(dead_code)]
-    notes: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -497,5 +495,12 @@ mod tests {
     fn labels_for_no_match() {
         let labels = score_labels(&Language::English, &Language::Japanese);
         assert_eq!(labels.family, "Different language families");
+    }
+
+    #[test]
+    fn labels_for_identical_guess_and_answer_show_same_script_and_family() {
+        let labels = score_labels(&Language::French, &Language::French);
+        assert_eq!(labels.script, "Both Latin script");
+        assert_eq!(labels.family, "Both Gallo-Romance");
     }
 }

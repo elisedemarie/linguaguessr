@@ -9,7 +9,6 @@ const MAX_CHARS: usize = 600;
 pub enum FetchError {
     Http(String),
     Parse,
-    TooShort,
 }
 
 #[async_trait]
@@ -328,6 +327,63 @@ mod tests {
     fn long_text_preserves_content_up_to_cutoff() {
         let result = truncate_extract(&long_extract());
         assert!(long_extract().starts_with(&result));
+    }
+
+    #[test]
+    fn text_of_exactly_max_chars_plus_one_is_truncated() {
+        let text = "a".repeat(MAX_CHARS) + " extra";
+        let result = truncate_extract(&text);
+        assert!(result.chars().count() <= MAX_CHARS);
+    }
+
+    #[test]
+    fn no_space_near_boundary_falls_back_to_char_boundary() {
+        // MAX_CHARS + 50 chars with no spaces anywhere — rfind(' ') returns None
+        let text = "a".repeat(MAX_CHARS + 50);
+        let result = truncate_extract(&text);
+        assert_eq!(result.chars().count(), MAX_CHARS);
+        assert!(std::str::from_utf8(result.as_bytes()).is_ok());
+    }
+
+    // --- fetch_article_from MIN_CHARS boundary ---
+
+    #[tokio::test]
+    async fn extract_of_exactly_min_chars_is_accepted_without_retry() {
+        let exact = "a".repeat(MIN_CHARS);
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200)
+                .set_body_string(summary_json(&exact)))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let client = ReqwestWikipediaClient::new();
+        let result = fetch_article_from(&Language::English, &client, &server.uri()).await;
+        assert_eq!(result.unwrap(), exact);
+        server.verify().await;
+    }
+
+    #[tokio::test]
+    async fn extract_one_char_below_min_triggers_retry() {
+        let too_short = "a".repeat(MIN_CHARS - 1);
+        let adequate  = "a".repeat(MIN_CHARS + 50);
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200)
+                .set_body_string(summary_json(&too_short)))
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200)
+                .set_body_string(summary_json(&adequate)))
+            .mount(&server)
+            .await;
+
+        let client = ReqwestWikipediaClient::new();
+        let result = fetch_article_from(&Language::English, &client, &server.uri()).await;
+        assert_eq!(result.unwrap(), adequate);
     }
 
     // --- fetch_article_from happy path ---

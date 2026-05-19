@@ -9,7 +9,6 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use common::api::{GuessRequest, GuessResponse};
-use common::api::RoundView;
 use common::scoring::{binary_score, partial_score, score_labels};
 use common::types::{GameMode, Language};
 use crate::game::{GameSession, Round, session_to_view};
@@ -57,7 +56,7 @@ pub async fn get_game(
     }
 
     let game_id = Uuid::new_v4();
-    let session = GameSession { game_id, mode: mode.clone(), rounds };
+    let session = GameSession { game_id, mode, rounds };
     let mut view = session_to_view(&session);
 
     if mode == GameMode::Easy {
@@ -80,7 +79,7 @@ pub(crate) fn make_options(correct: &Language, pool: &[Language]) -> Vec<Languag
         .collect();
     rand::seq::SliceRandom::shuffle(distractors.as_mut_slice(), &mut rng);
     let mut options: Vec<Language> = distractors.into_iter().take(3).collect();
-    options.push(correct.clone());
+    options.push(*correct);
     rand::seq::SliceRandom::shuffle(options.as_mut_slice(), &mut rng);
     options
 }
@@ -106,7 +105,7 @@ pub async fn post_guess(
     let labels = score_labels(&request.language, &round.language);
     Json(GuessResponse {
         correct,
-        correct_language: round.language.clone(),
+        correct_language: round.language,
         score,
         labels,
     }).into_response()
@@ -328,10 +327,10 @@ mod tests {
     async fn correct_guess_returns_200_with_correct_true() {
         let (app, store) = make_app(MockWikipediaClient::failing());
         let (session, game_id, round_id) = make_session(Language::French, "Bonjour.");
-        store.lock().unwrap().insert(game_id, session);
+        seed_session(&store, session);
 
         let body = serde_json::json!({ "round_id": round_id, "language": "French" });
-        let response = app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap();
+        let response = app.oneshot(post_request(&guess_url(game_id), body)).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
         let result = parse_guess_response(response).await;
@@ -344,10 +343,10 @@ mod tests {
     async fn wrong_guess_returns_200_with_correct_false() {
         let (app, store) = make_app(MockWikipediaClient::failing());
         let (session, game_id, round_id) = make_session(Language::French, "Bonjour.");
-        store.lock().unwrap().insert(game_id, session);
+        seed_session(&store, session);
 
         let body = serde_json::json!({ "round_id": round_id, "language": "English" });
-        let response = app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap();
+        let response = app.oneshot(post_request(&guess_url(game_id), body)).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
         let result = parse_guess_response(response).await;
@@ -361,10 +360,10 @@ mod tests {
     async fn unrelated_guess_scores_zero() {
         let (app, store) = make_app(MockWikipediaClient::failing());
         let (session, game_id, round_id) = make_session(Language::Japanese, "日本語。");
-        store.lock().unwrap().insert(game_id, session);
+        seed_session(&store, session);
 
         let body = serde_json::json!({ "round_id": round_id, "language": "English" });
-        let response = app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap();
+        let response = app.oneshot(post_request(&guess_url(game_id), body)).await.unwrap();
 
         let result = parse_guess_response(response).await;
         // English (Latin, IE) vs Japanese (Japanese script, Japonic) = 0
@@ -375,10 +374,10 @@ mod tests {
     async fn guess_response_includes_labels() {
         let (app, store) = make_app(MockWikipediaClient::failing());
         let (session, game_id, round_id) = make_session(Language::French, "Bonjour.");
-        store.lock().unwrap().insert(game_id, session);
+        seed_session(&store, session);
 
         let body = serde_json::json!({ "round_id": round_id, "language": "Spanish" });
-        let response = app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap();
+        let response = app.oneshot(post_request(&guess_url(game_id), body)).await.unwrap();
 
         let result = parse_guess_response(response).await;
         assert_eq!(result.labels.script, "Both Latin script");
@@ -397,10 +396,10 @@ mod tests {
     async fn unknown_round_id_returns_404() {
         let (app, store) = make_app(MockWikipediaClient::failing());
         let (session, game_id, _) = make_session(Language::French, "Bonjour.");
-        store.lock().unwrap().insert(game_id, session);
+        seed_session(&store, session);
 
         let body = serde_json::json!({ "round_id": Uuid::new_v4(), "language": "French" });
-        let response = app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap();
+        let response = app.oneshot(post_request(&guess_url(game_id), body)).await.unwrap();
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 
@@ -408,10 +407,10 @@ mod tests {
     async fn guessing_same_round_twice_returns_valid_response() {
         let (app, store) = make_app(MockWikipediaClient::failing());
         let (session, game_id, round_id) = make_session(Language::Japanese, "日本語。");
-        store.lock().unwrap().insert(game_id, session);
+        seed_session(&store, session);
 
         let body = serde_json::json!({ "round_id": round_id, "language": "Japanese" });
-        let uri = format!("/api/game/{game_id}/guess");
+        let uri = guess_url(game_id);
 
         let first = app.clone().oneshot(post_request(&uri, body.clone())).await.unwrap();
         assert_eq!(first.status(), StatusCode::OK);
@@ -433,15 +432,23 @@ mod tests {
         (session, game_id, round_id)
     }
 
+    fn guess_url(game_id: Uuid) -> String {
+        format!("/api/game/{game_id}/guess")
+    }
+
+    fn seed_session(store: &Arc<Mutex<HashMap<Uuid, GameSession>>>, session: GameSession) {
+        store.lock().unwrap().insert(session.game_id, session);
+    }
+
     #[tokio::test]
     async fn easy_mode_correct_guess_scores_1000() {
         let (app, store) = make_app(MockWikipediaClient::failing());
         let (session, game_id, round_id) = make_session_with_mode(Language::French, "Bonjour.", GameMode::Easy);
-        store.lock().unwrap().insert(game_id, session);
+        seed_session(&store, session);
 
         let body = serde_json::json!({ "round_id": round_id, "language": "French" });
         let result = parse_guess_response(
-            app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap()
+            app.oneshot(post_request(&guess_url(game_id), body)).await.unwrap()
         ).await;
 
         assert!(result.correct);
@@ -454,12 +461,12 @@ mod tests {
     async fn easy_mode_wrong_guess_scores_0() {
         let (app, store) = make_app(MockWikipediaClient::failing());
         let (session, game_id, round_id) = make_session_with_mode(Language::French, "Bonjour.", GameMode::Easy);
-        store.lock().unwrap().insert(game_id, session);
+        seed_session(&store, session);
 
         // Spanish is a close relative of French — should still score 0 in Easy
         let body = serde_json::json!({ "round_id": round_id, "language": "Spanish" });
         let result = parse_guess_response(
-            app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap()
+            app.oneshot(post_request(&guess_url(game_id), body)).await.unwrap()
         ).await;
 
         assert!(!result.correct);
@@ -472,11 +479,11 @@ mod tests {
     async fn medium_mode_wrong_guess_still_gets_partial_score() {
         let (app, store) = make_app(MockWikipediaClient::failing());
         let (session, game_id, round_id) = make_session_with_mode(Language::French, "Bonjour.", GameMode::Medium);
-        store.lock().unwrap().insert(game_id, session);
+        seed_session(&store, session);
 
         let body = serde_json::json!({ "round_id": round_id, "language": "Spanish" });
         let result = parse_guess_response(
-            app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap()
+            app.oneshot(post_request(&guess_url(game_id), body)).await.unwrap()
         ).await;
 
         assert!(!result.correct);
@@ -620,5 +627,31 @@ mod tests {
         for round in &game.rounds {
             assert!(round.options.is_empty());
         }
+    }
+
+    // --- error handling ---
+
+    #[tokio::test]
+    async fn malformed_mode_query_param_returns_400() {
+        let (app, _) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?mode=blah")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn malformed_post_body_returns_422() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, _) = make_session(Language::French, "Bonjour.");
+        seed_session(&store, session);
+
+        let response = app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&guess_url(game_id))
+                .header("content-type", "application/json")
+                .body(axum::body::Body::from("not valid json"))
+                .unwrap()
+        ).await.unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 }
