@@ -324,10 +324,7 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<u32>) -> impl
                             <div class="score-axis">
                                 <span class="axis-name">
                                     "Script"
-                                    <span class="info-icon">
-                                        "ⓘ"
-                                        <span class="tooltip">{script_tooltip_text()}</span>
-                                    </span>
+                                    <span class="tooltip">{script_tooltip_text()}</span>
                                 </span>
                                 <div class="axis-bar">
                                     <div class="axis-fill"
@@ -340,10 +337,7 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<u32>) -> impl
                             <div class="score-axis">
                                 <span class="axis-name">
                                     "Family"
-                                    <span class="info-icon">
-                                        "ⓘ"
-                                        <span class="tooltip">{family_tooltip_text()}</span>
-                                    </span>
+                                    <span class="tooltip">{family_tooltip_text()}</span>
                                 </span>
                                 <div class="axis-bar">
                                     <div class="axis-fill"

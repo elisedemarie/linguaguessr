@@ -290,22 +290,12 @@ body {
   opacity: 0.8;
 }
 
-.info-icon {
+.axis-name {
   position: relative;
-  margin-left: 0.25rem;
   cursor: help;
-  font-size: 0.75em;
-  font-weight: 400;
-  opacity: 0.6;
-  text-transform: none;
-  letter-spacing: 0;
 }
 
-.info-icon:hover {
-  opacity: 1;
-}
-
-.info-icon .tooltip {
+.axis-name .tooltip {
   display: none;
   position: absolute;
   bottom: calc(100% + 6px);
@@ -314,6 +304,9 @@ body {
   background: #333;
   color: #fff;
   font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
   line-height: 1.4;
   padding: 0.4rem 0.6rem;
   border-radius: 4px;
@@ -321,7 +314,7 @@ body {
   pointer-events: none;
 }
 
-.info-icon:hover .tooltip {
+.axis-name:hover .tooltip {
   display: block;
 }
 
