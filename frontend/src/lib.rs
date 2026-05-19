@@ -119,6 +119,14 @@ async fn submit_guess(
     response.json::<GuessResponse>().await.map_err(|e| format!("Parse error: {e}"))
 }
 
+fn script_tooltip_text() -> &'static str {
+    "How similar was the script of your guess to the answer?"
+}
+
+fn family_tooltip_text() -> &'static str {
+    "How closely related was the language of your guess to the answer?"
+}
+
 fn suggestion_pool(mode: &GameMode) -> &'static [Language] {
     match mode {
         GameMode::Easy   => Language::easy_pool(),
@@ -314,7 +322,13 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<u32>) -> impl
                         <div class=header_class>
                             <p class="feedback-header">{header}</p>
                             <div class="score-axis">
-                                <span class="axis-name">"Script"</span>
+                                <span class="axis-name">
+                                    "Script"
+                                    <span class="info-icon">
+                                        "ⓘ"
+                                        <span class="tooltip">{script_tooltip_text()}</span>
+                                    </span>
+                                </span>
                                 <div class="axis-bar">
                                     <div class="axis-fill"
                                         style=format!("width: {}%", script_score / 5)>
@@ -324,7 +338,13 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<u32>) -> impl
                                 <span class="axis-desc">{script_label}</span>
                             </div>
                             <div class="score-axis">
-                                <span class="axis-name">"Family"</span>
+                                <span class="axis-name">
+                                    "Family"
+                                    <span class="info-icon">
+                                        "ⓘ"
+                                        <span class="tooltip">{family_tooltip_text()}</span>
+                                    </span>
+                                </span>
                                 <div class="axis-bar">
                                     <div class="axis-fill"
                                         style=format!("width: {}%", family_score / 5)>
@@ -394,6 +414,18 @@ pub fn LanguageCombobox(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // --- tooltip copy ---
+
+    #[test]
+    fn script_tooltip_text_is_correct() {
+        assert_eq!(script_tooltip_text(), "How similar was the script of your guess to the answer?");
+    }
+
+    #[test]
+    fn family_tooltip_text_is_correct() {
+        assert_eq!(family_tooltip_text(), "How closely related was the language of your guess to the answer?");
+    }
 
     // --- mode_str ---
 
