@@ -27,6 +27,8 @@ pub struct ScoreLabels {
 #[derive(Deserialize)]
 struct LanguageEntry {
     script: String,
+    script_family: String,
+    script_branch: String,
     script_chars: Option<String>,
     family: String,
     branch: String,
@@ -36,19 +38,10 @@ struct LanguageEntry {
 }
 
 #[derive(Deserialize)]
-struct ScriptSpecialCase {
-    languages: Vec<String>,
-    score: u32,
-    #[allow(dead_code)]
-    reason: String,
-}
-
-#[derive(Deserialize)]
 struct ScoringConfig {
     script_max: u32,
     family_max: u32,
     unrelated: u32,
-    script_special_cases: Vec<ScriptSpecialCase>,
 }
 
 #[derive(Deserialize)]
@@ -136,16 +129,11 @@ fn compute_script_score(g: &Language, a: &Language) -> u32 {
         };
     }
 
-    let g_name = lang_name(g);
-    let a_name = lang_name(a);
-    for special in &data.config.script_special_cases {
-        if special.languages.contains(&g_name) && special.languages.contains(&a_name)
-            && g_name != a_name
-        {
-            return special.score;
-        }
-    }
-    data.config.unrelated
+    let j = jaccard_nodes(
+        [ge.script_family.as_str(), ge.script_branch.as_str(), ge.script.as_str()],
+        [ae.script_family.as_str(), ae.script_branch.as_str(), ae.script.as_str()],
+    );
+    (data.config.script_max as f64 * j).round() as u32
 }
 
 fn compute_family_score(g: &Language, a: &Language) -> u32 {
@@ -181,18 +169,12 @@ pub fn score_labels(guess: &Language, answer: &Language) -> ScoreLabels {
 
     let script = if ge.script == ae.script {
         format!("Both {} script", ge.script)
+    } else if ge.script_family == ae.script_family && ge.script_branch == ae.script_branch {
+        format!("Both use {} scripts", ge.script_branch)
+    } else if ge.script_family == ae.script_family {
+        format!("Related {} scripts", ge.script_family)
     } else {
-        let data = get_data();
-        let g_name = lang_name(guess);
-        let a_name = lang_name(answer);
-        let is_special = data.config.script_special_cases.iter().any(|sc| {
-            sc.languages.contains(&g_name) && sc.languages.contains(&a_name) && g_name != a_name
-        });
-        if is_special {
-            "Both use CJK characters".to_string()
-        } else {
-            "Different scripts".to_string()
-        }
+        "Different scripts".to_string()
     };
 
     let family = if ge.sub_branch == ae.sub_branch {
@@ -208,12 +190,6 @@ pub fn score_labels(guess: &Language, answer: &Language) -> ScoreLabels {
     ScoreLabels { script, family }
 }
 
-fn lang_name(lang: &Language) -> String {
-    serde_json::to_value(lang)
-        .ok()
-        .and_then(|v| v.as_str().map(|s| s.to_string()))
-        .unwrap_or_default()
-}
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -234,6 +210,56 @@ mod tests {
     #[test]
     fn binary_score_wrong_is_0() {
         assert_eq!(binary_score(false), ScoreBreakdown { script: 0, family: 0, total: 0 });
+    }
+
+    // --- cross-script Jaccard scoring ---
+
+    #[test]
+    fn punjabi_hindi_same_branch_scores_250() {
+        let score = partial_score(&Language::Punjabi, &Language::Hindi);
+        assert_eq!(score.script, 250);
+    }
+
+    #[test]
+    fn hindi_tamil_same_family_diff_branch_scores_100() {
+        let score = partial_score(&Language::Hindi, &Language::Tamil);
+        assert_eq!(score.script, 100);
+    }
+
+    #[test]
+    fn hindi_thai_same_family_diff_branch_scores_100() {
+        let score = partial_score(&Language::Hindi, &Language::Thai);
+        assert_eq!(score.script, 100);
+    }
+
+    #[test]
+    fn thai_khmer_same_branch_scores_250() {
+        let score = partial_score(&Language::Thai, &Language::Khmer);
+        assert_eq!(score.script, 250);
+    }
+
+    #[test]
+    fn arabic_hebrew_same_family_diff_branch_scores_100() {
+        let score = partial_score(&Language::Arabic, &Language::Hebrew);
+        assert_eq!(score.script, 100);
+    }
+
+    #[test]
+    fn english_russian_unrelated_scripts_scores_0() {
+        let score = partial_score(&Language::English, &Language::Russian);
+        assert_eq!(score.script, 0);
+    }
+
+    #[test]
+    fn cross_script_scoring_is_symmetric() {
+        assert_eq!(
+            partial_score(&Language::Punjabi, &Language::Hindi).script,
+            partial_score(&Language::Hindi, &Language::Punjabi).script,
+        );
+        assert_eq!(
+            partial_score(&Language::Arabic, &Language::Hebrew).script,
+            partial_score(&Language::Hebrew, &Language::Arabic).script,
+        );
     }
 
     // --- completeness: every Language variant must be in the TOML ---
@@ -344,10 +370,10 @@ mod tests {
     }
 
     #[test]
-    fn arabic_hebrew_scores_225() {
-        // Different scripts → 0; Semitic branch 2/4 → 225
+    fn arabic_hebrew_scores_325() {
+        // Semitic cross-script (Arabic Abjad vs Hebrew Abjad) → 100; Semitic branch 2/4 → 225
         assert_eq!(partial_score(&Language::Arabic, &Language::Hebrew),
-            ScoreBreakdown { script: 0, family: 225, total: 225 });
+            ScoreBreakdown { script: 100, family: 225, total: 325 });
     }
 
     #[test]
@@ -372,10 +398,10 @@ mod tests {
     }
 
     #[test]
-    fn tamil_telugu_scores_450() {
-        // Different scripts (Tamil vs Telugu), both South Dravidian → 0+450
+    fn tamil_telugu_scores_700() {
+        // Both Brahmic/South Indic → script 250; both South Dravidian → family 450
         assert_eq!(partial_score(&Language::Tamil, &Language::Telugu),
-            ScoreBreakdown { script: 0, family: 450, total: 450 });
+            ScoreBreakdown { script: 250, family: 450, total: 700 });
     }
 
     #[test]
@@ -423,22 +449,29 @@ mod tests {
     }
 
     #[test]
-    fn labels_for_cjk_special_case() {
+    fn labels_for_same_family_same_branch_different_script() {
+        // Punjabi (Gurmukhi) and Hindi (Devanagari): both Brahmic / North Indic
+        let labels = score_labels(&Language::Punjabi, &Language::Hindi);
+        assert_eq!(labels.script, "Both use North Indic scripts");
+    }
+
+    #[test]
+    fn labels_for_same_family_different_branch() {
+        // Hindi (North Indic) and Tamil (South Indic): both Brahmic
+        let labels = score_labels(&Language::Hindi, &Language::Tamil);
+        assert_eq!(labels.script, "Related Brahmic scripts");
+    }
+
+    #[test]
+    fn labels_for_cjk_pair() {
+        // Chinese and Japanese: both CJK / Logographic
         let labels = score_labels(&Language::Chinese, &Language::Japanese);
-        assert_eq!(labels.script, "Both use CJK characters");
+        assert_eq!(labels.script, "Both use Logographic scripts");
     }
 
     #[test]
     fn labels_for_different_scripts() {
         let labels = score_labels(&Language::English, &Language::Arabic);
-        assert_eq!(labels.script, "Different scripts");
-    }
-
-    #[test]
-    fn cjk_label_requires_both_languages_in_pair_not_just_one() {
-        // Chinese is in the CJK special case, but Spanish is not —
-        // only one side of the pair matches, so label must not be CJK
-        let labels = score_labels(&Language::Chinese, &Language::Spanish);
         assert_eq!(labels.script, "Different scripts");
     }
 
