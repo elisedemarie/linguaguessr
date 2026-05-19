@@ -290,6 +290,41 @@ body {
   opacity: 0.8;
 }
 
+.info-icon {
+  position: relative;
+  margin-left: 0.25rem;
+  cursor: help;
+  font-size: 0.75em;
+  font-weight: 400;
+  opacity: 0.6;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.info-icon:hover {
+  opacity: 1;
+}
+
+.info-icon .tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  width: 210px;
+  background: #333;
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.info-icon:hover .tooltip {
+  display: block;
+}
+
 .score-total {
   font-size: 1rem;
   font-weight: 700;
