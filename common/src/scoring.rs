@@ -161,6 +161,14 @@ fn compute_family_score(g: &Language, a: &Language) -> u32 {
     (data.config.family_max as f64 * j).round() as u32
 }
 
+pub fn binary_score(correct: bool) -> ScoreBreakdown {
+    if correct {
+        ScoreBreakdown { script: 500, family: 500, total: 1000 }
+    } else {
+        ScoreBreakdown { script: 0, family: 0, total: 0 }
+    }
+}
+
 pub fn partial_score(guess: &Language, answer: &Language) -> ScoreBreakdown {
     let script = compute_script_score(guess, answer);
     let family = compute_family_score(guess, answer);
@@ -215,6 +223,18 @@ fn lang_name(lang: &Language) -> String {
 mod tests {
     use super::*;
     use crate::types::Language;
+
+    // --- binary_score ---
+
+    #[test]
+    fn binary_score_correct_is_1000() {
+        assert_eq!(binary_score(true), ScoreBreakdown { script: 500, family: 500, total: 1000 });
+    }
+
+    #[test]
+    fn binary_score_wrong_is_0() {
+        assert_eq!(binary_score(false), ScoreBreakdown { script: 0, family: 0, total: 0 });
+    }
 
     // --- completeness: every Language variant must be in the TOML ---
 

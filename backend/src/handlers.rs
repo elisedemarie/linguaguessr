@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use common::api::{GuessRequest, GuessResponse};
 use common::api::RoundView;
-use common::scoring::{partial_score, score_labels};
+use common::scoring::{binary_score, partial_score, score_labels};
 use common::types::{GameMode, Language};
 use crate::game::{GameSession, Round, session_to_view};
 use crate::wikipedia::{fetch_article, WikipediaClient};
@@ -57,7 +57,7 @@ pub async fn get_game(
     }
 
     let game_id = Uuid::new_v4();
-    let session = GameSession { game_id, rounds };
+    let session = GameSession { game_id, mode: mode.clone(), rounds };
     let mut view = session_to_view(&session);
 
     if mode == GameMode::Easy {
@@ -98,7 +98,11 @@ pub async fn post_guess(
         return StatusCode::NOT_FOUND.into_response();
     };
     let correct = round.language == request.language;
-    let score = partial_score(&request.language, &round.language);
+    let score = if session.mode == GameMode::Easy {
+        binary_score(correct)
+    } else {
+        partial_score(&request.language, &round.language)
+    };
     let labels = score_labels(&request.language, &round.language);
     Json(GuessResponse {
         correct,
@@ -156,13 +160,7 @@ mod tests {
     }
 
     fn make_session(language: Language, text: &str) -> (GameSession, Uuid, Uuid) {
-        let game_id = Uuid::new_v4();
-        let round_id = Uuid::new_v4();
-        let session = GameSession {
-            game_id,
-            rounds: vec![Round { round_id, text: text.to_string(), language }],
-        };
-        (session, game_id, round_id)
+        make_session_with_mode(language, text, GameMode::Medium)
     }
 
     fn post_request(uri: &str, body: serde_json::Value) -> Request<axum::body::Body> {
@@ -420,6 +418,69 @@ mod tests {
 
         let second = app.oneshot(post_request(&uri, body)).await.unwrap();
         assert_eq!(second.status(), StatusCode::OK);
+    }
+
+    // --- easy mode binary scoring ---
+
+    fn make_session_with_mode(language: Language, text: &str, mode: GameMode) -> (GameSession, Uuid, Uuid) {
+        let game_id = Uuid::new_v4();
+        let round_id = Uuid::new_v4();
+        let session = GameSession {
+            game_id,
+            mode,
+            rounds: vec![Round { round_id, text: text.to_string(), language }],
+        };
+        (session, game_id, round_id)
+    }
+
+    #[tokio::test]
+    async fn easy_mode_correct_guess_scores_1000() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, round_id) = make_session_with_mode(Language::French, "Bonjour.", GameMode::Easy);
+        store.lock().unwrap().insert(game_id, session);
+
+        let body = serde_json::json!({ "round_id": round_id, "language": "French" });
+        let result = parse_guess_response(
+            app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap()
+        ).await;
+
+        assert!(result.correct);
+        assert_eq!(result.score.total, 1000);
+        assert_eq!(result.score.script, 500);
+        assert_eq!(result.score.family, 500);
+    }
+
+    #[tokio::test]
+    async fn easy_mode_wrong_guess_scores_0() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, round_id) = make_session_with_mode(Language::French, "Bonjour.", GameMode::Easy);
+        store.lock().unwrap().insert(game_id, session);
+
+        // Spanish is a close relative of French — should still score 0 in Easy
+        let body = serde_json::json!({ "round_id": round_id, "language": "Spanish" });
+        let result = parse_guess_response(
+            app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap()
+        ).await;
+
+        assert!(!result.correct);
+        assert_eq!(result.score.total, 0);
+        assert_eq!(result.score.script, 0);
+        assert_eq!(result.score.family, 0);
+    }
+
+    #[tokio::test]
+    async fn medium_mode_wrong_guess_still_gets_partial_score() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, round_id) = make_session_with_mode(Language::French, "Bonjour.", GameMode::Medium);
+        store.lock().unwrap().insert(game_id, session);
+
+        let body = serde_json::json!({ "round_id": round_id, "language": "Spanish" });
+        let result = parse_guess_response(
+            app.oneshot(post_request(&format!("/api/game/{game_id}/guess"), body)).await.unwrap()
+        ).await;
+
+        assert!(!result.correct);
+        assert!(result.score.total > 0);
     }
 
     // --- mode-aware game creation ---

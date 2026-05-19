@@ -15,7 +15,7 @@ enum GamePhase {
     Home,
     Loading,
     Playing { game: GameView, mode: GameMode },
-    Finished { score: u32 },
+    Finished { score: u32, mode: GameMode },
     Error(String),
 }
 
@@ -53,15 +53,15 @@ pub fn App() -> impl IntoView {
                     view! {
                         <RoundScreen
                             game=game
-                            mode=mode
+                            mode=mode.clone()
                             on_finish=Callback::new(move |score| {
-                                phase.set(GamePhase::Finished { score });
+                                phase.set(GamePhase::Finished { score, mode: mode.clone() });
                             })
                         />
                     }.into_any()
                 },
-                GamePhase::Finished { score } => view! {
-                    <FinishedScreen score=score on_play_again=go_home />
+                GamePhase::Finished { score, mode } => view! {
+                    <FinishedScreen score=score mode=mode on_play_again=go_home />
                 }.into_any(),
                 GamePhase::Error(msg) => view! {
                     <ErrorScreen message=msg />
@@ -119,6 +119,24 @@ async fn submit_guess(
     response.json::<GuessResponse>().await.map_err(|e| format!("Parse error: {e}"))
 }
 
+fn display_score(score: u32, mode: &GameMode) -> u32 {
+    match mode {
+        GameMode::Easy => score / 1000,
+        _              => score,
+    }
+}
+
+fn max_score(mode: &GameMode) -> u32 {
+    match mode {
+        GameMode::Easy => 5,
+        _              => 5000,
+    }
+}
+
+fn show_score_breakdown(mode: &GameMode) -> bool {
+    *mode != GameMode::Easy
+}
+
 fn suggestion_pool(mode: &GameMode) -> &'static [Language] {
     match mode {
         GameMode::Easy   => Language::easy_pool(),
@@ -171,9 +189,12 @@ fn ErrorScreen(message: String) -> impl IntoView {
 #[component]
 fn FinishedScreen(
     score: u32,
+    mode: GameMode,
     on_play_again: impl Fn(leptos::web_sys::MouseEvent) + 'static,
 ) -> impl IntoView {
-    let pct = score * 100 / 5000;
+    let shown = display_score(score, &mode);
+    let max   = max_score(&mode);
+    let pct   = shown * 100 / max;
     let message = match pct {
         100     => "Perfect — flawless!",
         80..=99 => "Excellent work!",
@@ -184,7 +205,7 @@ fn FinishedScreen(
     view! {
         <div class="home">
             <h1 class="title">"Game over!"</h1>
-            <p class="score">{score}" / 5,000"</p>
+            <p class="score">{shown}" / "{max}</p>
             <p class="subtitle">{message}</p>
             <button class="play-btn" on:click=on_play_again>"Play again"</button>
         </div>
@@ -197,6 +218,7 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<u32>) -> impl
     let total     = game.rounds.len();
     let rounds    = StoredValue::new(game.rounds);
     let pool      = suggestion_pool(&mode);
+    let breakdown = show_score_breakdown(&mode);
 
     let round_index = RwSignal::new(0usize);
     let score       = RwSignal::new(0u32);
@@ -310,32 +332,40 @@ fn RoundScreen(game: GameView, mode: GameMode, on_finish: Callback<u32>) -> impl
                     let total_score   = f.score.total;
                     let script_label  = f.labels.script.clone();
                     let family_label  = f.labels.family.clone();
-                    view! {
-                        <div class=header_class>
-                            <p class="feedback-header">{header}</p>
-                            <div class="score-axis">
-                                <span class="axis-name">"Script"</span>
-                                <div class="axis-bar">
-                                    <div class="axis-fill"
-                                        style=format!("width: {}%", script_score / 5)>
+                    if breakdown {
+                        view! {
+                            <div class=header_class>
+                                <p class="feedback-header">{header}</p>
+                                <div class="score-axis">
+                                    <span class="axis-name">"Script"</span>
+                                    <div class="axis-bar">
+                                        <div class="axis-fill"
+                                            style=format!("width: {}%", script_score / 5)>
+                                        </div>
                                     </div>
+                                    <span class="axis-score">{script_score}" / 500"</span>
+                                    <span class="axis-desc">{script_label}</span>
                                 </div>
-                                <span class="axis-score">{script_score}" / 500"</span>
-                                <span class="axis-desc">{script_label}</span>
-                            </div>
-                            <div class="score-axis">
-                                <span class="axis-name">"Family"</span>
-                                <div class="axis-bar">
-                                    <div class="axis-fill"
-                                        style=format!("width: {}%", family_score / 5)>
+                                <div class="score-axis">
+                                    <span class="axis-name">"Family"</span>
+                                    <div class="axis-bar">
+                                        <div class="axis-fill"
+                                            style=format!("width: {}%", family_score / 5)>
+                                        </div>
                                     </div>
+                                    <span class="axis-score">{family_score}" / 500"</span>
+                                    <span class="axis-desc">{family_label}</span>
                                 </div>
-                                <span class="axis-score">{family_score}" / 500"</span>
-                                <span class="axis-desc">{family_label}</span>
+                                <p class="score-total">{total_score}" / 1,000"</p>
                             </div>
-                            <p class="score-total">{total_score}" / 1,000"</p>
-                        </div>
-                    }.into_any()
+                        }.into_any()
+                    } else {
+                        view! {
+                            <div class=header_class>
+                                <p class="feedback-header">{header}</p>
+                            </div>
+                        }.into_any()
+                    }
                 })}
                 <button class="next-btn" on:click=on_next>
                     {move || if round_index.get() + 1 >= total { "See my score" } else { "Next →" }}
@@ -394,6 +424,65 @@ pub fn LanguageCombobox(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // --- display_score / max_score ---
+
+    #[test]
+    fn display_score_easy_divides_by_1000() {
+        assert_eq!(display_score(3000, &GameMode::Easy), 3);
+    }
+
+    #[test]
+    fn display_score_easy_correct_all_is_5() {
+        assert_eq!(display_score(5000, &GameMode::Easy), 5);
+    }
+
+    #[test]
+    fn display_score_easy_zero_is_0() {
+        assert_eq!(display_score(0, &GameMode::Easy), 0);
+    }
+
+    #[test]
+    fn display_score_medium_returns_raw() {
+        assert_eq!(display_score(3750, &GameMode::Medium), 3750);
+    }
+
+    #[test]
+    fn display_score_hard_returns_raw() {
+        assert_eq!(display_score(2000, &GameMode::Hard), 2000);
+    }
+
+    #[test]
+    fn max_score_easy_is_5() {
+        assert_eq!(max_score(&GameMode::Easy), 5);
+    }
+
+    #[test]
+    fn max_score_medium_is_5000() {
+        assert_eq!(max_score(&GameMode::Medium), 5000);
+    }
+
+    #[test]
+    fn max_score_hard_is_5000() {
+        assert_eq!(max_score(&GameMode::Hard), 5000);
+    }
+
+    // --- show_score_breakdown ---
+
+    #[test]
+    fn show_score_breakdown_is_false_for_easy() {
+        assert!(!show_score_breakdown(&GameMode::Easy));
+    }
+
+    #[test]
+    fn show_score_breakdown_is_true_for_medium() {
+        assert!(show_score_breakdown(&GameMode::Medium));
+    }
+
+    #[test]
+    fn show_score_breakdown_is_true_for_hard() {
+        assert!(show_score_breakdown(&GameMode::Hard));
+    }
 
     // --- mode_str ---
 
