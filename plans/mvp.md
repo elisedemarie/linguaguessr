@@ -123,3 +123,7 @@ Backend validates the guess against the stored answer. Guess matching is case-in
 - Share button / social results
 - Hard mode (single sentence)
 - Difficulty tiers
+
+## Known Gaps
+
+- **Score tooltip mobile support**: The Script/Family tooltips on the feedback screen are hover-only and invisible on mobile. Consider a tap-to-toggle approach or always-visible sub-labels for mobile viewports.
