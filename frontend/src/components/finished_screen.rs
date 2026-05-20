@@ -22,7 +22,10 @@ pub fn FinishedScreen(
     view! {
         <div class="home">
             <h1 class="title">"Game over!"</h1>
-            <p class="score">{shown}" / "{max}</p>
+            <p class="score">
+                {shown}
+                {(mode == GameMode::Easy).then(|| format!(" / {max}"))}
+            </p>
             <p class="subtitle">{message}</p>
             <button class="play-btn" on:click=on_play_again>"Play again"</button>
         </div>
