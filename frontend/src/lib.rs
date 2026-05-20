@@ -3,8 +3,8 @@ mod components;
 mod mode;
 mod score;
 
-use common::api::GameView;
-use common::types::GameMode;
+use common::api::{GameView, GuessResponse};
+use common::types::{GameMode, Language};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use wasm_bindgen::prelude::*;
@@ -13,11 +13,17 @@ use api::fetch_game;
 use components::{ErrorScreen, FinishedScreen, HomeScreen, LoadingScreen, RoundScreen};
 
 #[derive(Clone)]
+pub struct RoundResult {
+    pub guessed:  Language,
+    pub response: GuessResponse,
+}
+
+#[derive(Clone)]
 enum GamePhase {
     Home,
     Loading,
     Playing { game: GameView, mode: GameMode },
-    Finished { score: u32, mode: GameMode },
+    Finished { score: u32, mode: GameMode, rounds: Vec<RoundResult> },
     Error(String),
 }
 
@@ -56,14 +62,14 @@ pub fn App() -> impl IntoView {
                         <RoundScreen
                             game=game
                             mode=mode.clone()
-                            on_finish=Callback::new(move |score| {
-                                phase.set(GamePhase::Finished { score, mode: mode.clone() });
+                            on_finish=Callback::new(move |(score, rounds)| {
+                                phase.set(GamePhase::Finished { score, mode: mode.clone(), rounds });
                             })
                         />
                     }.into_any()
                 },
-                GamePhase::Finished { score, mode } => view! {
-                    <FinishedScreen score=score mode=mode on_play_again=go_home />
+                GamePhase::Finished { score, mode, rounds } => view! {
+                    <FinishedScreen score=score mode=mode rounds=rounds on_play_again=go_home />
                 }.into_any(),
                 GamePhase::Error(msg) => view! {
                     <ErrorScreen message=msg />
