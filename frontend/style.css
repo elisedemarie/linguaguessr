@@ -176,12 +176,25 @@ body {
   gap: 1.25rem;
 }
 
+.round-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .round-counter {
   font-size: 0.75rem;
   color: var(--gold);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1.5px;
+}
+
+.round-score {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .text-block {

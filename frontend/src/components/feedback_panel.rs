@@ -43,7 +43,7 @@ pub fn FeedbackPanel(
                             style=format!("width: {}%", script_score / 5)>
                         </div>
                     </div>
-                    <span class="axis-score">{script_score}" / 500"</span>
+                    <span class="axis-score">{script_score}</span>
                     {(total_score < 1000).then(|| view! { <span class="axis-desc">{script_label}</span> })}
                 </div>
                 <div class="score-axis">
@@ -56,10 +56,10 @@ pub fn FeedbackPanel(
                             style=format!("width: {}%", family_score / 5)>
                         </div>
                     </div>
-                    <span class="axis-score">{family_score}" / 500"</span>
+                    <span class="axis-score">{family_score}</span>
                     {(total_score < 1000).then(|| view! { <span class="axis-desc">{family_label}</span> })}
                 </div>
-                <p class="score-total">{total_score}" / 1,000"</p>
+                <p class="score-total">{total_score}</p>
             </div>
             <button class="next-btn" on:click=move |ev| on_next.run(ev)>
                 {move || if round_index.get() + 1 >= total { "See my score" } else { "Next →" }}

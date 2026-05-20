@@ -56,9 +56,12 @@ pub fn RoundScreen(game: GameView, mode: common::types::GameMode, on_finish: Cal
 
     view! {
         <div class="round">
-            <p class="round-counter">
-                "Round " {move || round_index.get() + 1} " of " {total}
-            </p>
+            <div class="round-header">
+                <p class="round-counter">
+                    "Round " {move || round_index.get() + 1} " of " {total}
+                </p>
+                <p class="round-score">"Score " {move || score.get()}</p>
+            </div>
             <div class="text-block">
                 {move || current_round.get().text}
             </div>
