@@ -15,11 +15,33 @@ pub fn GuessInput(
     if options.is_empty() {
         view! {
             <div class="combobox-group">
-                <LanguageCombobox
-                    query=query
-                    pool=pool
-                    on_select=Callback::new(move |lang| selected.set(Some(lang)))
-                />
+                <div class="combobox-wrapper">
+                    <LanguageCombobox
+                        query=query
+                        pool=pool
+                        on_select=Callback::new(move |lang| selected.set(Some(lang)))
+                        on_input_change=Callback::new(move |_| {
+                            if selected.get().is_some() {
+                                selected.set(None);
+                                query.set(String::new());
+                            }
+                        })
+                    />
+                    <Show when=move || selected.get().is_some()>
+                        <div class="selected-chip">
+                            <span class="selected-chip-label">
+                                {move || selected.get().map(|l| l.label().to_string())}
+                            </span>
+                            <button
+                                class="selected-chip-clear"
+                                on:click=move |_| {
+                                    selected.set(None);
+                                    query.set(String::new());
+                                }
+                            >"✕"</button>
+                        </div>
+                    </Show>
+                </div>
                 <button
                     class="submit-btn"
                     prop:disabled=move || selected.get().is_none() || submitting.get()
