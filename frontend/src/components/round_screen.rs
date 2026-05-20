@@ -4,23 +4,25 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 use crate::api::submit_guess;
 use crate::mode::{show_score_breakdown, suggestion_pool};
+use crate::RoundResult;
 use super::feedback_panel::FeedbackPanel;
 use super::guess_input::GuessInput;
 
 #[component]
-pub fn RoundScreen(game: GameView, mode: common::types::GameMode, on_finish: Callback<u32>) -> impl IntoView {
+pub fn RoundScreen(game: GameView, mode: common::types::GameMode, on_finish: Callback<(u32, Vec<RoundResult>)>) -> impl IntoView {
     let game_id   = game.game_id;
     let total     = game.rounds.len();
     let rounds    = StoredValue::new(game.rounds);
     let pool      = suggestion_pool(&mode);
     let breakdown = show_score_breakdown(&mode);
 
-    let round_index = RwSignal::new(0usize);
-    let score       = RwSignal::new(0u32);
-    let selected    = RwSignal::new(Option::<Language>::None);
-    let feedback    = RwSignal::new(Option::<GuessResponse>::None);
-    let submitting  = RwSignal::new(false);
-    let query       = RwSignal::new(String::new());
+    let round_index  = RwSignal::new(0usize);
+    let score        = RwSignal::new(0u32);
+    let selected     = RwSignal::new(Option::<Language>::None);
+    let feedback     = RwSignal::new(Option::<GuessResponse>::None);
+    let submitting   = RwSignal::new(false);
+    let query        = RwSignal::new(String::new());
+    let results      = StoredValue::new(Vec::<RoundResult>::new());
 
     let current_round = Memo::new(move |_| {
         rounds.with_value(|r| r[round_index.get()].clone())
@@ -31,9 +33,10 @@ pub fn RoundScreen(game: GameView, mode: common::types::GameMode, on_finish: Cal
         let round_id = current_round.get().round_id;
         submitting.set(true);
         spawn_local(async move {
-            match submit_guess(game_id, round_id, lang).await {
+            match submit_guess(game_id, round_id, lang.clone()).await {
                 Ok(result) => {
                     score.update(|s| *s += result.score.total);
+                    results.update_value(|v| v.push(RoundResult { guessed: lang, response: result.clone() }));
                     feedback.set(Some(result));
                     submitting.set(false);
                 }
@@ -45,7 +48,7 @@ pub fn RoundScreen(game: GameView, mode: common::types::GameMode, on_finish: Cal
     let on_next = Callback::new(move |_: leptos::web_sys::MouseEvent| {
         let next = round_index.get() + 1;
         if next >= total {
-            on_finish.run(score.get());
+            on_finish.run((score.get(), results.get_value()));
         } else {
             round_index.set(next);
             selected.set(None);

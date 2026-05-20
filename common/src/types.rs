@@ -90,6 +90,16 @@ pub enum Language {
     Zulu,
 }
 
+impl GameMode {
+    pub fn label(&self) -> &str {
+        match self {
+            GameMode::Easy   => "Easy",
+            GameMode::Medium => "Medium",
+            GameMode::Hard   => "Hard",
+        }
+    }
+}
+
 impl Language {
     pub fn all() -> &'static [Language] {
         &[
@@ -406,6 +416,21 @@ mod tests {
     use super::*;
 
     // --- GameMode ---
+
+    #[test]
+    fn game_mode_easy_label() {
+        assert_eq!(GameMode::Easy.label(), "Easy");
+    }
+
+    #[test]
+    fn game_mode_medium_label() {
+        assert_eq!(GameMode::Medium.label(), "Medium");
+    }
+
+    #[test]
+    fn game_mode_hard_label() {
+        assert_eq!(GameMode::Hard.label(), "Hard");
+    }
 
     #[test]
     fn game_mode_default_is_medium() {
