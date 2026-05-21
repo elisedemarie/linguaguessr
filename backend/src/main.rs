@@ -30,6 +30,14 @@ fn build_router(state: AppState, frontend_url: Option<&str>) -> Router {
 
 #[tokio::main]
 async fn main() {
+    let _sentry = sentry::init((
+        std::env::var("SENTRY_DSN").unwrap_or_default(),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        },
+    ));
+
     let state = AppState {
         store: Arc::new(Mutex::new(HashMap::new())),
         wikipedia: Arc::new(ReqwestWikipediaClient::new()),
