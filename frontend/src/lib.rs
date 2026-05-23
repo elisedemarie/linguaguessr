@@ -1,3 +1,4 @@
+mod animation;
 mod api;
 mod components;
 mod mode;
