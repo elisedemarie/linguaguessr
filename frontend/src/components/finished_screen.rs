@@ -1,9 +1,21 @@
 use common::types::GameMode;
 use leptos::prelude::*;
+use std::cell::RefCell;
+use std::rc::Rc;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
+use crate::animation::ease_out_cubic;
 use crate::mode::show_score_breakdown;
 use crate::score::{display_score, max_score};
 use crate::RoundResult;
+
+fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) {
+    leptos::web_sys::window()
+        .unwrap()
+        .request_animation_frame(f.as_ref().unchecked_ref())
+        .unwrap();
+}
 
 #[component]
 pub fn FinishedScreen(
@@ -12,10 +24,37 @@ pub fn FinishedScreen(
     rounds: Vec<RoundResult>,
     on_play_again: impl Fn(leptos::web_sys::MouseEvent) + 'static,
 ) -> impl IntoView {
-    let shown = display_score(score, &mode);
-    let max   = max_score(&mode);
+    let target     = display_score(score, &mode) as f64;
+    let max        = max_score(&mode);
     let mode_label = mode.label().to_string();
-    let breakdown = show_score_breakdown(&mode);
+    let breakdown  = show_score_breakdown(&mode);
+
+    let animated = RwSignal::new(0.0_f64);
+
+    Effect::new(move |_| {
+        let start: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(None));
+        let cb: Rc<RefCell<Option<Closure<dyn FnMut(f64)>>>> = Rc::new(RefCell::new(None));
+        let cb2 = cb.clone();
+
+        *cb.borrow_mut() = Some(Closure::wrap(Box::new(move |ts: f64| {
+            let mut s = start.borrow_mut();
+            if s.is_none() {
+                *s = Some(ts);
+            }
+            let elapsed = ts - s.unwrap();
+            let t = (elapsed / 1200.0_f64).min(1.0);
+            animated.set(ease_out_cubic(t) * target);
+
+            if t < 1.0 {
+                request_animation_frame(cb2.borrow().as_ref().unwrap());
+            } else {
+                animated.set(target);
+                cb2.borrow_mut().take();
+            }
+        }) as Box<dyn FnMut(f64)>));
+
+        request_animation_frame(cb.borrow().as_ref().unwrap());
+    });
 
     let expanded = RwSignal::new(
         rounds.iter().map(|r| !r.response.correct).collect::<Vec<bool>>()
@@ -25,7 +64,7 @@ pub fn FinishedScreen(
         <div class="home">
             <div class="end-mode-badge">{mode_label}</div>
             <p class="score">
-                {shown}
+                {move || animated.get() as u32}
                 {(mode == GameMode::Easy).then(|| format!(" / {max}"))}
             </p>
 
