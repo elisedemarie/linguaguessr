@@ -9,7 +9,12 @@ user feedback. Domain: linguaguessr.io purchased via Cloudflare ($50/year).
 - `linguaguessr.io` → Cloudflare Pages (frontend, custom domain)
 - `api.linguaguessr.io` → EC2 Elastic IP (backend, behind Nginx + SSL)
 
-**Progress:** Phase 1 ✅ | Phase 2 ✅ | Phase 3 next (domain + SSL + Nginx)
+**Progress:** Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 next (feedback endpoint)
+
+**Notes:**
+- Cloudflare proxy on `api` A record must stay **DNS only** (grey cloud) — proxy breaks certbot renewal
+- BACKEND_URL in Cloudflare Pages must be `https://api.linguaguessr.io` (with the full "linguaguessr" spelling)
+- CI/CD deploy job will SSH to EC2 and run `~/deploy.sh` on every push to main
 
 ---
 
