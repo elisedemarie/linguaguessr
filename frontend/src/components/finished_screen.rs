@@ -24,7 +24,6 @@ pub fn FinishedScreen(
     view! {
         <div class="home">
             <div class="end-mode-badge">{mode_label}</div>
-            <h1 class="title">"Game over!"</h1>
             <p class="score">
                 {shown}
                 {(mode == GameMode::Easy).then(|| format!(" / {max}"))}

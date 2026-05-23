@@ -80,7 +80,7 @@ Used exclusively for the Wikipedia text block — the hero element of each round
 Two fonts are loaded via Google Fonts in `index.html`.
 
 ### Playfair Display
-- **When:** Titles only. `h1.title` on the home screen, "Game over!" on the finished screen.
+- **When:** Titles only. `h1.title` on the home screen.
 - **Weight:** 900 for the page title, 700 elsewhere.
 - **Never use for:** Body text, UI labels, buttons, numbers. High stroke contrast makes it hard to read at small sizes or in numerals.
 
