@@ -1,6 +1,7 @@
 mod animation;
 mod api;
 mod components;
+mod feedback_strings;
 mod mode;
 mod score;
 
@@ -8,15 +9,23 @@ use common::api::{GameView, GuessResponse};
 use common::types::{GameMode, Language};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
+use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
 use api::fetch_game;
-use components::{ErrorScreen, FinishedScreen, HomeScreen, LoadingScreen, RoundScreen};
+use components::{ErrorScreen, FeedbackModal, FinishedScreen, HomeScreen, LoadingScreen, RoundScreen};
 
 #[derive(Clone)]
 pub struct RoundResult {
     pub guessed:  Language,
     pub response: GuessResponse,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RoundContext {
+    pub game_id:  Uuid,
+    pub round_id: Uuid,
+    pub language: Option<String>,
 }
 
 #[derive(Clone)]
@@ -35,9 +44,14 @@ pub fn main() {
 
 #[component]
 pub fn App() -> impl IntoView {
-    let phase = RwSignal::new(GamePhase::Home);
+    let phase         = RwSignal::new(GamePhase::Home);
+    let modal_open    = RwSignal::new(false);
+    let round_context = RwSignal::new(Option::<RoundContext>::None);
 
-    let go_home = move |_| phase.set(GamePhase::Home);
+    let go_home = move |_| {
+        round_context.set(None);
+        phase.set(GamePhase::Home);
+    };
 
     let start_game = Callback::new(move |mode: GameMode| {
         phase.set(GamePhase::Loading);
@@ -53,7 +67,7 @@ pub fn App() -> impl IntoView {
         <div class="app">
             {move || match phase.get() {
                 GamePhase::Home => view! {
-                    <HomeScreen on_play=start_game />
+                    <HomeScreen on_play=start_game on_report=Callback::new(move |()| modal_open.set(true)) />
                 }.into_any(),
                 GamePhase::Loading => view! {
                     <LoadingScreen />
@@ -63,6 +77,7 @@ pub fn App() -> impl IntoView {
                         <RoundScreen
                             game=game
                             mode=mode.clone()
+                            round_context=round_context
                             on_finish=Callback::new(move |(score, rounds)| {
                                 phase.set(GamePhase::Finished { score, mode: mode.clone(), rounds });
                             })
@@ -70,12 +85,19 @@ pub fn App() -> impl IntoView {
                     }.into_any()
                 },
                 GamePhase::Finished { score, mode, rounds } => view! {
-                    <FinishedScreen score=score mode=mode rounds=rounds on_play_again=go_home />
+                    <FinishedScreen
+                        score=score
+                        mode=mode
+                        rounds=rounds
+                        on_play_again=go_home
+                        on_report=Callback::new(move |()| modal_open.set(true))
+                    />
                 }.into_any(),
                 GamePhase::Error(msg) => view! {
                     <ErrorScreen message=msg />
                 }.into_any(),
             }}
+            <FeedbackModal open=modal_open context=round_context />
         </div>
     }
 }

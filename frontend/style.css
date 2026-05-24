@@ -634,3 +634,181 @@ body {
   background: var(--gold-dim);
   color: var(--gold-bright);
 }
+
+/* --- GitHub link (home + end screen) --- */
+
+.github-link {
+  color: var(--muted);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.github-link:hover {
+  color: var(--gold-bright);
+}
+
+/* --- End-screen actions row --- */
+
+.end-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.report-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.report-btn:hover {
+  color: var(--gold-bright);
+}
+
+/* --- Feedback modal --- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.modal-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0.2rem;
+  transition: color 0.15s;
+}
+
+.modal-close:hover {
+  color: var(--text);
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.modal-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.modal-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.95rem;
+  font-family: 'Inter', sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+.modal-textarea:focus {
+  border-color: var(--gold);
+}
+
+.modal-input {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.95rem;
+  font-family: 'Inter', sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.modal-input:focus {
+  border-color: var(--gold);
+}
+
+.modal-error {
+  font-size: 0.85rem;
+  color: var(--red);
+}
+
+.modal-submit {
+  align-self: flex-end;
+  padding: 0.6rem 1.4rem;
+  background: var(--gold);
+  color: var(--gold-on);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.modal-submit:hover:not(:disabled) {
+  background: var(--gold-bright);
+}
+
+.modal-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-success {
+  text-align: center;
+  color: var(--green);
+}

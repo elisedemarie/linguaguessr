@@ -838,6 +838,7 @@ dependencies = [
  "common",
  "gloo-net",
  "leptos",
+ "serde",
  "serde_json",
  "uuid",
  "wasm-bindgen",
