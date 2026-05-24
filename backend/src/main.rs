@@ -11,7 +11,7 @@ use axum::http::{HeaderValue, Method};
 use axum::routing::{get, post};
 use axum::Router;
 use github::ReqwestGitHubClient;
-use handlers::{AppState, get_game, post_guess};
+use handlers::{AppState, get_game, post_feedback, post_guess};
 use tower_http::cors::CorsLayer;
 use wikipedia::ReqwestWikipediaClient;
 
@@ -27,6 +27,7 @@ fn build_router(state: AppState, frontend_url: Option<&str>) -> Router {
     Router::new()
         .route("/api/game", get(get_game))
         .route("/api/game/:game_id/guess", post(post_guess))
+        .route("/api/feedback", post(post_feedback))
         .layer(cors)
         .with_state(state)
 }
@@ -43,9 +44,10 @@ async fn main() {
 
     let github_token = std::env::var("GITHUB_FEEDBACK_TOKEN").unwrap_or_default();
     let state = AppState {
-        store:     Arc::new(Mutex::new(HashMap::new())),
-        wikipedia: Arc::new(ReqwestWikipediaClient::new()),
-        github:    Arc::new(ReqwestGitHubClient::new(github_token)),
+        store:        Arc::new(Mutex::new(HashMap::new())),
+        wikipedia:    Arc::new(ReqwestWikipediaClient::new()),
+        github:       Arc::new(ReqwestGitHubClient::new(github_token.clone())),
+        github_token,
     };
 
     let frontend_url = std::env::var("FRONTEND_URL").ok();
@@ -89,9 +91,10 @@ mod tests {
 
     fn make_state() -> AppState {
         AppState {
-            store:     Arc::new(Mutex::new(HashMap::new())),
-            wikipedia: Arc::new(AlwaysFailingClient),
-            github:    Arc::new(NoOpGitHubClient),
+            store:        Arc::new(Mutex::new(HashMap::new())),
+            wikipedia:    Arc::new(AlwaysFailingClient),
+            github:       Arc::new(NoOpGitHubClient),
+            github_token: "test_token".to_string(),
         }
     }
 
