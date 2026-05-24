@@ -1,36 +1,26 @@
 # LinguaGuessr
 
-A language identification game. Read a real snippet of text pulled from Wikipedia and guess what language it's written in — five rounds, three difficulty levels.
+How well can you identify a language just from its text?
 
-**Play it at [linguaguessr.pages.dev](https://linguaguessr.pages.dev)**
+Each round shows a real paragraph pulled live from Wikipedia — no translations — and you have to guess the language. The closer your guess, the better your score. Guess Spanish when the answer is Portuguese and you'll still score highly. Scores consider both the language family and how similar the script is.
 
-## How to play
+Five rounds, 75 possible languages, three difficulty levels.
 
-Choose a difficulty, then read each round's paragraph and identify the language:
+**Play at [linguaguessr.io](https://linguaguessr.io)**
 
-- **Easy** — 10 of the world's most spoken languages, presented as four multiple-choice buttons. Scoring is binary: correct or nothing.
-- **Medium** — 30 languages across diverse scripts and families. Free-text search, partial scoring.
-- **Hard** — all 75 languages, including many that share scripts or look similar. Free-text search, partial scoring.
+## Difficulty levels
 
-In Medium and Hard, you earn points even for a wrong guess if your answer shares a script or language family with the correct one. After each round, a score breakdown shows how your guess compared on two axes: **Script** (0–500) and **Family** (0–500).
+- **Easy** — 10 of the world's most spoken languages, four multiple-choice options. Correct or nothing.
+- **Medium** — 30 languages across diverse scripts and families. Free-text input, partial scoring.
+- **Hard** — all 75 languages, including plenty that share scripts or look deceptively similar. Free-text input, partial scoring.
 
-Suggestions in free-text mode match on ISO codes (`fr`), English names (`french`), and native scripts (`français`, `العربية`, `日本語`).
+After each round in Medium and Hard, a breakdown shows how close you were on two axes: **Script** and **Family**.
 
 ## Languages
 
-75 languages spanning Latin, Cyrillic, Arabic, Devanagari, CJK, Korean, Thai, Georgian, Armenian, Hebrew, Ethiopic, and more — including many less commonly featured languages like Burmese, Khmer, Sinhala, Yoruba, and Welsh.
+75 languages spanning Latin, Cyrillic, Arabic, Devanagari, CJK, Korean, Thai, Georgian, Armenian, Hebrew, Ethiopic, and more — including less commonly featured languages like Burmese, Khmer, Sinhala, Yoruba, and Welsh.
 
-## Tech stack
-
-| Layer | Technology |
-|-------|------------|
-| Backend | Rust + Axum |
-| Frontend | Rust + Leptos (compiled to WASM) |
-| Shared types | Rust crate (`common`) |
-| Wikipedia data | Wikipedia REST API (fetched server-side) |
-| Deployment | Cloudflare Pages (frontend) + Render (backend) |
-
-Single Cargo workspace — `common`, `backend`, `frontend`.
+Free-text search matches on ISO codes (`fr`), English names (`french`), and native scripts (`français`, `العربية`, `日本語`).
 
 ## Running locally
 
@@ -44,18 +34,14 @@ cargo run -p backend
 cd frontend && trunk serve
 ```
 
-Open [http://localhost:8080](http://localhost:8080). The frontend talks to `http://localhost:3000` by default.
+Open [http://localhost:8080](http://localhost:8080).
 
-## Architecture notes
+## Stack
 
-- The backend fetches Wikipedia text and holds correct answers server-side — the client never sees the answer until after it guesses
-- Language pool per mode: Easy uses the 10 most spoken languages, Medium uses a curated 30, Hard uses all 75
-- Partial scoring uses Jaccard similarity on script family nodes and exact matching on language family hierarchy (sub-branch → branch → family)
-- Wikipedia extracts are truncated at 600 characters (char count, not bytes) with retry logic for short articles
-- Session store is in-memory — no database, no persistence between server restarts
+Rust all the way down — Axum backend, Leptos frontend compiled to WASM, shared types in a common crate. Single Cargo workspace. Hosted on Cloudflare Pages (frontend) and AWS EC2 (backend).
 
 ## Roadmap
 
-- Real-life images of text (street signs, menus, handwriting)
 - Daily challenge mode
 - Leaderboard
+- Real-life images of text (street signs, menus, handwriting)
