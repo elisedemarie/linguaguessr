@@ -12,13 +12,15 @@ use common::api::{GuessRequest, GuessResponse};
 use common::scoring::{binary_score, partial_score, score_labels};
 use common::types::{GameMode, Language};
 use crate::game::{GameSession, Round, session_to_view};
+use crate::github::GitHubClient;
 use crate::wikipedia::{fetch_article, WikipediaClient};
 use futures::future::join_all;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub store: Arc<Mutex<HashMap<Uuid, GameSession>>>,
+    pub store:     Arc<Mutex<HashMap<Uuid, GameSession>>>,
     pub wikipedia: Arc<dyn WikipediaClient>,
+    pub github:    Arc<dyn GitHubClient>,
 }
 
 #[derive(Deserialize)]
@@ -120,8 +122,18 @@ mod tests {
     use axum::routing::get;
     use axum::Router;
     use common::api::GameView;
+    use crate::github::GitHubError;
     use crate::wikipedia::FetchError;
     use tower::ServiceExt;
+
+    struct NoOpGitHubClient;
+
+    #[async_trait]
+    impl GitHubClient for NoOpGitHubClient {
+        async fn create_issue(&self, _title: &str, _body: &str) -> Result<(), GitHubError> {
+            Ok(())
+        }
+    }
 
     struct MockWikipediaClient {
         text: Result<String, ()>,
@@ -148,8 +160,9 @@ mod tests {
     fn make_app(wikipedia: Arc<dyn WikipediaClient>) -> (Router, Arc<Mutex<HashMap<Uuid, GameSession>>>) {
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
-            store: Arc::clone(&store),
+            store:     Arc::clone(&store),
             wikipedia,
+            github:    Arc::new(NoOpGitHubClient),
         };
         let app = Router::new()
             .route("/api/game", get(get_game))
@@ -277,10 +290,11 @@ mod tests {
 
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
-            store: Arc::clone(&store),
+            store:     Arc::clone(&store),
             wikipedia: Arc::new(OneFailsClient {
                 failed: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             }),
+            github:    Arc::new(NoOpGitHubClient),
         };
         let app = Router::new()
             .route("/api/game", get(get_game))
@@ -305,8 +319,9 @@ mod tests {
 
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
-            store: Arc::clone(&store),
+            store:     Arc::clone(&store),
             wikipedia: Arc::new(SlowClient),
+            github:    Arc::new(NoOpGitHubClient),
         };
         let app = Router::new()
             .route("/api/game", get(get_game))

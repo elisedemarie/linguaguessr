@@ -1,5 +1,6 @@
 mod feedback;
 mod game;
+mod github;
 mod handlers;
 mod wikipedia;
 
@@ -9,6 +10,7 @@ use std::sync::{Arc, Mutex};
 use axum::http::{HeaderValue, Method};
 use axum::routing::{get, post};
 use axum::Router;
+use github::ReqwestGitHubClient;
 use handlers::{AppState, get_game, post_guess};
 use tower_http::cors::CorsLayer;
 use wikipedia::ReqwestWikipediaClient;
@@ -39,9 +41,11 @@ async fn main() {
         },
     ));
 
+    let github_token = std::env::var("GITHUB_FEEDBACK_TOKEN").unwrap_or_default();
     let state = AppState {
-        store: Arc::new(Mutex::new(HashMap::new())),
+        store:     Arc::new(Mutex::new(HashMap::new())),
         wikipedia: Arc::new(ReqwestWikipediaClient::new()),
+        github:    Arc::new(ReqwestGitHubClient::new(github_token)),
     };
 
     let frontend_url = std::env::var("FRONTEND_URL").ok();
@@ -62,6 +66,7 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::{Arc, Mutex};
     use tower::ServiceExt;
+    use github::GitHubError;
     use wikipedia::{FetchError, WikipediaClient};
 
     struct AlwaysFailingClient;
@@ -73,10 +78,20 @@ mod tests {
         }
     }
 
+    struct NoOpGitHubClient;
+
+    #[async_trait]
+    impl github::GitHubClient for NoOpGitHubClient {
+        async fn create_issue(&self, _title: &str, _body: &str) -> Result<(), GitHubError> {
+            Ok(())
+        }
+    }
+
     fn make_state() -> AppState {
         AppState {
-            store: Arc::new(Mutex::new(HashMap::new())),
+            store:     Arc::new(Mutex::new(HashMap::new())),
             wikipedia: Arc::new(AlwaysFailingClient),
+            github:    Arc::new(NoOpGitHubClient),
         }
     }
 
