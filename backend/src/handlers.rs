@@ -11,14 +11,18 @@ use uuid::Uuid;
 use common::api::{GuessRequest, GuessResponse};
 use common::scoring::{binary_score, partial_score, score_labels};
 use common::types::{GameMode, Language};
+use crate::feedback::{format_body, format_title, FeedbackRequest};
 use crate::game::{GameSession, Round, session_to_view};
+use crate::github::GitHubClient;
 use crate::wikipedia::{fetch_article, WikipediaClient};
 use futures::future::join_all;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub store: Arc<Mutex<HashMap<Uuid, GameSession>>>,
-    pub wikipedia: Arc<dyn WikipediaClient>,
+    pub store:        Arc<Mutex<HashMap<Uuid, GameSession>>>,
+    pub wikipedia:    Arc<dyn WikipediaClient>,
+    pub github:       Arc<dyn GitHubClient>,
+    pub github_token: String,
 }
 
 #[derive(Deserialize)]
@@ -111,6 +115,24 @@ pub async fn post_guess(
     }).into_response()
 }
 
+pub async fn post_feedback(
+    State(state): State<AppState>,
+    Json(req): Json<FeedbackRequest>,
+) -> impl IntoResponse {
+    if req.message.is_empty() {
+        return StatusCode::UNPROCESSABLE_ENTITY.into_response();
+    }
+    if state.github_token.is_empty() {
+        return StatusCode::BAD_GATEWAY.into_response();
+    }
+    let title = format_title(&req.message);
+    let body  = format_body(&req);
+    match state.github.create_issue(&title, &body).await {
+        Ok(())   => StatusCode::CREATED.into_response(),
+        Err(_)   => StatusCode::BAD_GATEWAY.into_response(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -120,8 +142,18 @@ mod tests {
     use axum::routing::get;
     use axum::Router;
     use common::api::GameView;
+    use crate::github::GitHubError;
     use crate::wikipedia::FetchError;
     use tower::ServiceExt;
+
+    struct NoOpGitHubClient;
+
+    #[async_trait]
+    impl GitHubClient for NoOpGitHubClient {
+        async fn create_issue(&self, _title: &str, _body: &str) -> Result<(), GitHubError> {
+            Ok(())
+        }
+    }
 
     struct MockWikipediaClient {
         text: Result<String, ()>,
@@ -148,8 +180,10 @@ mod tests {
     fn make_app(wikipedia: Arc<dyn WikipediaClient>) -> (Router, Arc<Mutex<HashMap<Uuid, GameSession>>>) {
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
-            store: Arc::clone(&store),
+            store:        Arc::clone(&store),
             wikipedia,
+            github:       Arc::new(NoOpGitHubClient),
+            github_token: "test_token".to_string(),
         };
         let app = Router::new()
             .route("/api/game", get(get_game))
@@ -277,10 +311,12 @@ mod tests {
 
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
-            store: Arc::clone(&store),
-            wikipedia: Arc::new(OneFailsClient {
+            store:        Arc::clone(&store),
+            wikipedia:    Arc::new(OneFailsClient {
                 failed: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             }),
+            github:       Arc::new(NoOpGitHubClient),
+            github_token: "test_token".to_string(),
         };
         let app = Router::new()
             .route("/api/game", get(get_game))
@@ -305,8 +341,10 @@ mod tests {
 
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
-            store: Arc::clone(&store),
-            wikipedia: Arc::new(SlowClient),
+            store:        Arc::clone(&store),
+            wikipedia:    Arc::new(SlowClient),
+            github:       Arc::new(NoOpGitHubClient),
+            github_token: "test_token".to_string(),
         };
         let app = Router::new()
             .route("/api/game", get(get_game))
@@ -653,5 +691,126 @@ mod tests {
                 .unwrap()
         ).await.unwrap();
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    // --- POST /api/feedback ---
+
+    struct SpyGitHubClient {
+        calls:  Arc<Mutex<Vec<(String, String)>>>,
+        result: Result<(), ()>,
+    }
+
+    impl SpyGitHubClient {
+        fn ok() -> (Arc<Self>, Arc<Mutex<Vec<(String, String)>>>) {
+            let calls = Arc::new(Mutex::new(vec![]));
+            (Arc::new(Self { calls: Arc::clone(&calls), result: Ok(()) }), calls)
+        }
+        fn failing() -> Arc<Self> {
+            Arc::new(Self { calls: Arc::new(Mutex::new(vec![])), result: Err(()) })
+        }
+    }
+
+    #[async_trait]
+    impl GitHubClient for SpyGitHubClient {
+        async fn create_issue(&self, title: &str, body: &str) -> Result<(), GitHubError> {
+            self.calls.lock().unwrap().push((title.to_string(), body.to_string()));
+            self.result.map_err(|_| GitHubError::Http("mock error".into()))
+        }
+    }
+
+    struct NoOpWikipediaClient;
+
+    #[async_trait]
+    impl WikipediaClient for NoOpWikipediaClient {
+        async fn fetch_summary(&self, _url: &str) -> Result<String, crate::wikipedia::FetchError> {
+            Ok("".to_string())
+        }
+    }
+
+    fn make_feedback_app(token: &str, github: Arc<dyn GitHubClient>) -> Router {
+        let state = AppState {
+            store:        Arc::new(Mutex::new(HashMap::new())),
+            wikipedia:    Arc::new(NoOpWikipediaClient),
+            github,
+            github_token: token.to_string(),
+        };
+        Router::new()
+            .route("/api/feedback", axum::routing::post(post_feedback))
+            .with_state(state)
+    }
+
+    fn feedback_post(body: serde_json::Value) -> Request<axum::body::Body> {
+        Request::builder()
+            .method("POST")
+            .uri("/api/feedback")
+            .header("content-type", "application/json")
+            .body(axum::body::Body::from(body.to_string()))
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn valid_feedback_returns_201() {
+        let (github, _calls) = SpyGitHubClient::ok();
+        let app = make_feedback_app("token", github);
+        let response = app.oneshot(feedback_post(serde_json::json!({ "message": "great game" }))).await.unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    #[tokio::test]
+    async fn valid_feedback_calls_github_with_formatted_title_and_body() {
+        let (github, calls) = SpyGitHubClient::ok();
+        let app = make_feedback_app("token", github);
+        app.oneshot(feedback_post(serde_json::json!({ "message": "great game" }))).await.unwrap();
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].0, "[Feedback] great game");
+        assert!(calls[0].1.contains("great game"));
+    }
+
+    #[tokio::test]
+    async fn empty_message_returns_422() {
+        let (github, _calls) = SpyGitHubClient::ok();
+        let app = make_feedback_app("token", github);
+        let response = app.oneshot(feedback_post(serde_json::json!({ "message": "" }))).await.unwrap();
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    #[tokio::test]
+    async fn empty_message_does_not_call_github() {
+        let (github, calls) = SpyGitHubClient::ok();
+        let app = make_feedback_app("token", github);
+        app.oneshot(feedback_post(serde_json::json!({ "message": "" }))).await.unwrap();
+        assert_eq!(calls.lock().unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn missing_message_field_returns_422() {
+        let (github, _calls) = SpyGitHubClient::ok();
+        let app = make_feedback_app("token", github);
+        let response = app.oneshot(feedback_post(serde_json::json!({ "email": "a@b.com" }))).await.unwrap();
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    #[tokio::test]
+    async fn github_error_returns_502() {
+        let app = make_feedback_app("token", SpyGitHubClient::failing());
+        let response = app.oneshot(feedback_post(serde_json::json!({ "message": "help" }))).await.unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
+    }
+
+    #[tokio::test]
+    async fn empty_token_returns_502() {
+        let (github, _calls) = SpyGitHubClient::ok();
+        let app = make_feedback_app("", github);
+        let response = app.oneshot(feedback_post(serde_json::json!({ "message": "help" }))).await.unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
+    }
+
+    #[tokio::test]
+    async fn empty_token_does_not_call_github() {
+        let (github, calls) = SpyGitHubClient::ok();
+        let app = make_feedback_app("", github);
+        app.oneshot(feedback_post(serde_json::json!({ "message": "help" }))).await.unwrap();
+        assert_eq!(calls.lock().unwrap().len(), 0);
     }
 }
