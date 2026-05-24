@@ -4,12 +4,17 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 use crate::api::submit_guess;
 use crate::mode::{show_score_breakdown, suggestion_pool};
-use crate::RoundResult;
+use crate::{RoundContext, RoundResult};
 use super::feedback_panel::FeedbackPanel;
 use super::guess_input::GuessInput;
 
 #[component]
-pub fn RoundScreen(game: GameView, mode: common::types::GameMode, on_finish: Callback<(u32, Vec<RoundResult>)>) -> impl IntoView {
+pub fn RoundScreen(
+    game:          GameView,
+    mode:          common::types::GameMode,
+    round_context: RwSignal<Option<RoundContext>>,
+    on_finish:     Callback<(u32, Vec<RoundResult>)>,
+) -> impl IntoView {
     let game_id   = game.game_id;
     let total     = game.rounds.len();
     let rounds    = StoredValue::new(game.rounds);
@@ -28,6 +33,16 @@ pub fn RoundScreen(game: GameView, mode: common::types::GameMode, on_finish: Cal
         rounds.with_value(|r| r[round_index.get()].clone())
     });
 
+    // Keep round_context in sync with the current round.
+    Effect::new(move |_| {
+        let round = current_round.get();
+        round_context.set(Some(RoundContext {
+            game_id,
+            round_id: round.round_id,
+            language: None,
+        }));
+    });
+
     let on_submit = Callback::new(move |_: leptos::web_sys::MouseEvent| {
         let Some(lang) = selected.get() else { return };
         let round_id = current_round.get().round_id;
@@ -37,6 +52,11 @@ pub fn RoundScreen(game: GameView, mode: common::types::GameMode, on_finish: Cal
                 Ok(result) => {
                     score.update(|s| *s += result.score.total);
                     results.update_value(|v| v.push(RoundResult { guessed: lang, response: result.clone() }));
+                    round_context.update(|ctx| {
+                        if let Some(c) = ctx {
+                            c.language = Some(result.correct_language.label().to_string());
+                        }
+                    });
                     feedback.set(Some(result));
                     submitting.set(false);
                 }
