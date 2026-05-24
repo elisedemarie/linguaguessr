@@ -2,7 +2,6 @@ mod error_screen;
 mod feedback_modal;
 mod feedback_panel;
 mod finished_screen;
-mod footer_bar;
 mod guess_input;
 mod home_screen;
 mod language_combobox;
