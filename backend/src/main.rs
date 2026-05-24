@@ -1,3 +1,4 @@
+mod feedback;
 mod game;
 mod handlers;
 mod wikipedia;
