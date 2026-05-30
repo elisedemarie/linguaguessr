@@ -23,6 +23,12 @@ pub fn HomeScreen(on_play: Callback<GameMode>, on_report: Callback<()>) -> impl 
                     "Hard"
                 </button>
             </div>
+            <div class="daily-button">
+                <button class="mode-btn daily"
+                    on:click=move |_| on_play.run(GameMode::Daily)>
+                    "DAILY"
+                </button>
+            </div>
             <div class="end-actions">
                 <a
                     href="https://github.com/elisedemarie/linguaguessr"
