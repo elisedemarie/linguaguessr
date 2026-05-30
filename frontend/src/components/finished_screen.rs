@@ -8,7 +8,7 @@ use wasm_bindgen::JsCast;
 use crate::animation::ease_out_cubic;
 use crate::feedback_strings::FEEDBACK_BUTTON_LABEL;
 use crate::mode::show_score_breakdown;
-use crate::score::{display_score, max_score};
+use crate::score::{display_score, format_share_text, max_score, round_result_emoji};
 use crate::RoundResult;
 
 fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) {
@@ -30,6 +30,25 @@ pub fn FinishedScreen(
     let max        = max_score(&mode);
     let mode_label = mode.label().to_string();
     let breakdown  = show_score_breakdown(&mode);
+    let is_daily   = mode == GameMode::Daily;
+
+    let emojis: String = rounds.iter()
+        .map(|r| round_result_emoji(r.response.score.total))
+        .collect();
+
+    let share_text = if is_daily {
+        let d = js_sys::Date::new_0();
+        let date_str = format!("{}-{:02}-{:02}",
+            d.get_utc_full_year(),
+            d.get_utc_month() + 1,
+            d.get_utc_date());
+        format_share_text(&date_str, &emojis, score)
+    } else {
+        String::new()
+    };
+
+    let copied           = RwSignal::new(false);
+    let share_text_store = StoredValue::new(share_text);
 
     let animated = RwSignal::new(0.0_f64);
 
@@ -138,6 +157,26 @@ pub fn FinishedScreen(
                     }
                 }).collect_view()}
             </div>
+
+            {is_daily.then(|| view! {
+                <div class="daily-share">
+                    <p class="daily-emojis">{emojis}</p>
+                    <button class="copy-btn" on:click=move |_| {
+                        let text = share_text_store.get_value();
+                        copied.set(true);
+                        leptos::task::spawn_local(async move {
+                            if let Some(window) = leptos::web_sys::window() {
+                                let clipboard = window.navigator().clipboard();
+                                let _ = wasm_bindgen_futures::JsFuture::from(
+                                    clipboard.write_text(&text)
+                                ).await;
+                            }
+                        });
+                    }>
+                        {move || if copied.get() { "Copied!" } else { "Copy result" }}
+                    </button>
+                </div>
+            })}
 
             <button class="play-btn" on:click=on_play_again>"Play again"</button>
 

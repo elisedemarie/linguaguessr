@@ -175,6 +175,47 @@ body {
   background: var(--gold-bright);
 }
 
+/* --- Daily share --- */
+
+.daily-share {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  padding: 0.9rem 1.2rem;
+  background: rgba(138, 180, 84, 0.07);
+  border: 1px solid rgba(138, 180, 84, 0.18);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 380px;
+}
+
+.daily-emojis {
+  font-size: 1.6rem;
+  letter-spacing: 0.15em;
+  margin: 0;
+}
+
+.copy-btn {
+  padding: 0.45rem 1.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  background: transparent;
+  color: #8ab454;
+  border: 1px solid rgba(138, 180, 84, 0.4);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  letter-spacing: 0.04em;
+}
+
+.copy-btn:hover {
+  background: rgba(138, 180, 84, 0.1);
+  border-color: rgba(138, 180, 84, 0.6);
+}
+
 /* --- Loading / Error --- */
 
 .loading, .error {
