@@ -10,39 +10,63 @@ pub fn HomeScreen(
     on_report:    Callback<()>,
     daily_result: Signal<Option<DailyEntry>>,
 ) -> impl IntoView {
+    let show_picker = RwSignal::new(false);
+
     view! {
         <div class="home">
             <h1 class="title"><span class="title-accent">"Lingua"</span>"Guessr"</h1>
             <p class="subtitle">"Can you identify the language?"</p>
-            <div class="mode-buttons">
-                <button class="mode-btn easy"
-                    on:click=move |_| on_play.run(GameMode::Easy)>
-                    "Easy"
-                </button>
-                <button class="mode-btn medium"
-                    on:click=move |_| on_play.run(GameMode::Medium)>
-                    "Medium"
-                </button>
-                <button class="mode-btn hard"
-                    on:click=move |_| on_play.run(GameMode::Hard)>
-                    "Hard"
-                </button>
-            </div>
-            <div class="daily-button">
-                {move || match daily_result.get() {
-                    Some(entry) => view! {
-                        <div class="daily-played">
-                            <span class="daily-played-emojis">{entry.emojis}</span>
-                            <span class="daily-played-score">{entry.score}" / 5000"</span>
+            <div class="primary-buttons">
+                <div class="play-group">
+                    <button
+                        class="mode-btn play"
+                        class:open=move || show_picker.get()
+                        on:click=move |_| show_picker.update(|v| *v = !*v)
+                    >
+                        "PLAY"
+                    </button>
+                    {move || show_picker.get().then(|| view! {
+                        <div class="difficulty-picker">
+                            <button class="difficulty-btn easy"
+                                on:click=move |_| {
+                                    show_picker.set(false);
+                                    on_play.run(GameMode::Easy);
+                                }>
+                                "Easy"
+                            </button>
+                            <button class="difficulty-btn medium"
+                                on:click=move |_| {
+                                    show_picker.set(false);
+                                    on_play.run(GameMode::Medium);
+                                }>
+                                "Medium"
+                            </button>
+                            <button class="difficulty-btn hard"
+                                on:click=move |_| {
+                                    show_picker.set(false);
+                                    on_play.run(GameMode::Hard);
+                                }>
+                                "Hard"
+                            </button>
                         </div>
-                    }.into_any(),
-                    None => view! {
-                        <button class="mode-btn daily"
-                            on:click=move |_| on_play.run(GameMode::Daily)>
-                            "DAILY"
-                        </button>
-                    }.into_any(),
-                }}
+                    })}
+                </div>
+                <div class="daily-button">
+                    {move || match daily_result.get() {
+                        Some(entry) => view! {
+                            <div class="daily-played">
+                                <span class="daily-played-emojis">{entry.emojis}</span>
+                                <span class="daily-played-score">{entry.score}" / 5000"</span>
+                            </div>
+                        }.into_any(),
+                        None => view! {
+                            <button class="mode-btn daily"
+                                on:click=move |_| on_play.run(GameMode::Daily)>
+                                "DAILY"
+                            </button>
+                        }.into_any(),
+                    }}
+                </div>
             </div>
             <div class="end-actions">
                 <a
