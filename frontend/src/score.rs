@@ -14,6 +14,18 @@ pub fn max_score(mode: &GameMode) -> u32 {
     }
 }
 
+pub fn round_result_emoji(score: u32) -> &'static str {
+    match score {
+        1000 => "🟩",
+        0    => "🟥",
+        _    => "🟨",
+    }
+}
+
+pub fn format_share_text(date: &str, emojis: &str, total_score: u32) -> String {
+    format!("LinguaGuessr Daily — {date}\n{emojis}\n{total_score} / 5000\nlinguaguessr.io")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -56,5 +68,74 @@ mod tests {
     #[test]
     fn max_score_hard_is_5000() {
         assert_eq!(max_score(&GameMode::Hard), 5000);
+    }
+
+    #[test]
+    fn display_score_daily_returns_raw() {
+        assert_eq!(display_score(3500, &GameMode::Daily), 3500);
+    }
+
+    #[test]
+    fn max_score_daily_is_5000() {
+        assert_eq!(max_score(&GameMode::Daily), 5000);
+    }
+
+    // --- round_result_emoji ---
+
+    #[test]
+    fn perfect_score_is_green() {
+        assert_eq!(round_result_emoji(1000), "🟩");
+    }
+
+    #[test]
+    fn zero_score_is_red() {
+        assert_eq!(round_result_emoji(0), "🟥");
+    }
+
+    #[test]
+    fn partial_score_is_yellow() {
+        assert_eq!(round_result_emoji(500), "🟨");
+    }
+
+    #[test]
+    fn minimal_partial_score_is_yellow() {
+        assert_eq!(round_result_emoji(1), "🟨");
+    }
+
+    #[test]
+    fn just_below_perfect_is_yellow() {
+        assert_eq!(round_result_emoji(999), "🟨");
+    }
+
+    // --- format_share_text ---
+
+    #[test]
+    fn share_text_contains_date() {
+        let text = format_share_text("2026-05-30", "🟩🟨🟥🟩🟩", 3500);
+        assert!(text.contains("2026-05-30"));
+    }
+
+    #[test]
+    fn share_text_contains_emojis() {
+        let text = format_share_text("2026-05-30", "🟩🟨🟥🟩🟩", 3500);
+        assert!(text.contains("🟩🟨🟥🟩🟩"));
+    }
+
+    #[test]
+    fn share_text_contains_total_score() {
+        let text = format_share_text("2026-05-30", "🟩🟨🟥🟩🟩", 3500);
+        assert!(text.contains("3500"));
+    }
+
+    #[test]
+    fn share_text_contains_max_score() {
+        let text = format_share_text("2026-05-30", "🟩🟨🟥🟩🟩", 3500);
+        assert!(text.contains("5000"));
+    }
+
+    #[test]
+    fn share_text_contains_site_url() {
+        let text = format_share_text("2026-05-30", "🟩🟨🟥🟩🟩", 3500);
+        assert!(text.contains("linguaguessr.io"));
     }
 }
