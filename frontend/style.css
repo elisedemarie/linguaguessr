@@ -134,6 +134,27 @@ body {
   border-color: rgba(192, 122, 90, 0.4);
 }
 
+.daily-button {
+  width: 100%;
+  max-width: 300px;
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.mode-btn.daily {
+  background: #1e2614;
+  color: #8ab454;
+  border: 1px solid rgba(138, 180, 84, 0.25);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.mode-btn.daily:hover {
+  background: #26321a;
+  border-color: rgba(138, 180, 84, 0.45);
+}
+
 /* --- Play again button --- */
 
 .play-btn {
