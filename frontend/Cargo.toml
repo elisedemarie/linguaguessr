@@ -17,4 +17,4 @@ uuid = { version = "1", features = ["serde", "v4", "js"] }
 getrandom = { version = "0.2", features = ["js"] }
 js-sys = "0.3"
 wasm-bindgen-futures = "0.4"
-web-sys = { version = "0.3", features = ["Clipboard", "Navigator"] }
+web-sys = { version = "0.3", features = ["Clipboard", "Navigator", "Storage"] }

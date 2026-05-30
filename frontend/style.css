@@ -155,6 +155,30 @@ body {
   border-color: rgba(138, 180, 84, 0.45);
 }
 
+.daily-played {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.75rem 1rem;
+  background: rgba(138, 180, 84, 0.07);
+  border: 1px solid rgba(138, 180, 84, 0.18);
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+.daily-played-emojis {
+  font-size: 1.3rem;
+  letter-spacing: 0.1em;
+}
+
+.daily-played-score {
+  font-size: 0.8rem;
+  color: #8ab454;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
 /* --- Play again button --- */
 
 .play-btn {
