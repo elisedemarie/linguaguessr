@@ -5,14 +5,15 @@ pub fn mode_str(mode: &GameMode) -> &'static str {
         GameMode::Easy   => "easy",
         GameMode::Medium => "medium",
         GameMode::Hard   => "hard",
+        GameMode::Daily  => "daily",
     }
 }
 
 pub fn suggestion_pool(mode: &GameMode) -> &'static [Language] {
     match mode {
-        GameMode::Easy   => Language::easy_pool(),
-        GameMode::Medium => Language::medium_pool(),
-        GameMode::Hard   => Language::all(),
+        GameMode::Easy              => Language::easy_pool(),
+        GameMode::Medium            => Language::medium_pool(),
+        GameMode::Hard | GameMode::Daily => Language::all(),
     }
 }
 
@@ -46,6 +47,19 @@ mod tests {
     #[test]
     fn show_score_breakdown_is_true_for_hard() {
         assert!(show_score_breakdown(&GameMode::Hard));
+    }
+
+    #[test]
+    fn mode_str_daily() { assert_eq!(mode_str(&GameMode::Daily), "daily"); }
+
+    #[test]
+    fn show_score_breakdown_is_true_for_daily() {
+        assert!(show_score_breakdown(&GameMode::Daily));
+    }
+
+    #[test]
+    fn suggestion_pool_daily_returns_full_75() {
+        assert_eq!(suggestion_pool(&GameMode::Daily).len(), 75);
     }
 
     #[test]

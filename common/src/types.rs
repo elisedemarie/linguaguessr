@@ -7,6 +7,7 @@ pub enum GameMode {
     #[default]
     Medium,
     Hard,
+    Daily,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -96,6 +97,7 @@ impl GameMode {
             GameMode::Easy   => "Easy",
             GameMode::Medium => "Medium",
             GameMode::Hard   => "Hard",
+            GameMode::Daily  => "Daily",
         }
     }
 }
@@ -409,11 +411,62 @@ impl Language {
     pub fn suggestions(query: &str) -> Vec<Language> {
         Self::suggestions_for(query, Self::all())
     }
+
+    pub fn daily_languages(date: chrono::NaiveDate) -> [Language; 5] {
+        use chrono::Datelike;
+        use rand::SeedableRng;
+        use rand::seq::SliceRandom;
+
+        let seed = date.num_days_from_ce() as u64;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
+        let mut pool = Self::all().to_vec();
+        pool.shuffle(&mut rng);
+        [pool[0], pool[1], pool[2], pool[3], pool[4]]
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::NaiveDate;
+
+    // --- daily_languages ---
+
+    #[test]
+    fn daily_languages_returns_exactly_five() {
+        let date = NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
+        assert_eq!(Language::daily_languages(date).len(), 5);
+    }
+
+    #[test]
+    fn daily_languages_same_date_same_result() {
+        let date = NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
+        assert_eq!(Language::daily_languages(date), Language::daily_languages(date));
+    }
+
+    #[test]
+    fn daily_languages_different_dates_different_results() {
+        let date_a = NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
+        let date_b = NaiveDate::from_ymd_opt(2026, 5, 31).unwrap();
+        assert_ne!(Language::daily_languages(date_a), Language::daily_languages(date_b));
+    }
+
+    #[test]
+    fn daily_languages_all_distinct() {
+        let date = NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
+        let langs = Language::daily_languages(date);
+        let unique: std::collections::HashSet<_> = langs.iter().collect();
+        assert_eq!(unique.len(), 5);
+    }
+
+    #[test]
+    fn daily_languages_all_in_full_pool() {
+        let date = NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
+        let langs = Language::daily_languages(date);
+        for lang in &langs {
+            assert!(Language::all().contains(lang));
+        }
+    }
 
     // --- GameMode ---
 
@@ -430,6 +483,22 @@ mod tests {
     #[test]
     fn game_mode_hard_label() {
         assert_eq!(GameMode::Hard.label(), "Hard");
+    }
+
+    #[test]
+    fn game_mode_daily_label() {
+        assert_eq!(GameMode::Daily.label(), "Daily");
+    }
+
+    #[test]
+    fn game_mode_daily_deserialises_from_lowercase() {
+        let mode: GameMode = serde_json::from_str(r#""daily""#).unwrap();
+        assert_eq!(mode, GameMode::Daily);
+    }
+
+    #[test]
+    fn game_mode_daily_serialises_as_lowercase() {
+        assert_eq!(serde_json::to_string(&GameMode::Daily).unwrap(), r#""daily""#);
     }
 
     #[test]

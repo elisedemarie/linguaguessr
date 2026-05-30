@@ -1,10 +1,15 @@
 use common::types::GameMode;
 use leptos::prelude::*;
 
+use crate::daily::DailyEntry;
 use crate::feedback_strings::FEEDBACK_BUTTON_LABEL;
 
 #[component]
-pub fn HomeScreen(on_play: Callback<GameMode>, on_report: Callback<()>) -> impl IntoView {
+pub fn HomeScreen(
+    on_play:      Callback<GameMode>,
+    on_report:    Callback<()>,
+    daily_result: Signal<Option<DailyEntry>>,
+) -> impl IntoView {
     view! {
         <div class="home">
             <h1 class="title"><span class="title-accent">"Lingua"</span>"Guessr"</h1>
@@ -22,6 +27,22 @@ pub fn HomeScreen(on_play: Callback<GameMode>, on_report: Callback<()>) -> impl 
                     on:click=move |_| on_play.run(GameMode::Hard)>
                     "Hard"
                 </button>
+            </div>
+            <div class="daily-button">
+                {move || match daily_result.get() {
+                    Some(entry) => view! {
+                        <div class="daily-played">
+                            <span class="daily-played-emojis">{entry.emojis}</span>
+                            <span class="daily-played-score">{entry.score}" / 5000"</span>
+                        </div>
+                    }.into_any(),
+                    None => view! {
+                        <button class="mode-btn daily"
+                            on:click=move |_| on_play.run(GameMode::Daily)>
+                            "DAILY"
+                        </button>
+                    }.into_any(),
+                }}
             </div>
             <div class="end-actions">
                 <a
