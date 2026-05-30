@@ -34,7 +34,18 @@ pub(crate) fn language_pool(mode: &GameMode) -> &'static [Language] {
     match mode {
         GameMode::Easy   => Language::easy_pool(),
         GameMode::Medium => Language::medium_pool(),
-        GameMode::Hard   => Language::all(),
+        GameMode::Hard | GameMode::Daily => Language::all(),
+    }
+}
+
+pub(crate) fn select_languages(mode: &GameMode, date: chrono::NaiveDate) -> Vec<Language> {
+    match mode {
+        GameMode::Daily => Language::daily_languages(date).to_vec(),
+        _ => {
+            let mut pool = language_pool(mode).to_vec();
+            rand::seq::SliceRandom::shuffle(pool.as_mut_slice(), &mut rand::thread_rng());
+            pool.into_iter().take(5).collect()
+        }
     }
 }
 
@@ -43,9 +54,7 @@ pub async fn get_game(
     Query(params): Query<GameParams>,
 ) -> impl IntoResponse {
     let mode = params.mode.unwrap_or_default();
-    let mut languages = language_pool(&mode).to_vec();
-    rand::seq::SliceRandom::shuffle(languages.as_mut_slice(), &mut rand::thread_rng());
-    let languages: Vec<Language> = languages.into_iter().take(5).collect();
+    let languages = select_languages(&mode, chrono::Utc::now().date_naive());
 
     let results = join_all(
         languages.iter().map(|lang| fetch_article(lang, state.wikipedia.as_ref()))
@@ -587,6 +596,79 @@ mod tests {
     #[tokio::test]
     async fn get_game_with_no_mode_defaults_to_medium_pool_size() {
         assert_eq!(language_pool(&GameMode::default()).len(), 30);
+    }
+
+    // --- daily mode ---
+
+    #[test]
+    fn select_languages_daily_same_date_same_result() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
+        assert_eq!(select_languages(&GameMode::Daily, date), select_languages(&GameMode::Daily, date));
+    }
+
+    #[test]
+    fn select_languages_daily_different_dates_different_results() {
+        let date_a = chrono::NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
+        let date_b = chrono::NaiveDate::from_ymd_opt(2026, 5, 31).unwrap();
+        assert_ne!(select_languages(&GameMode::Daily, date_a), select_languages(&GameMode::Daily, date_b));
+    }
+
+    #[test]
+    fn select_languages_daily_returns_five() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
+        assert_eq!(select_languages(&GameMode::Daily, date).len(), 5);
+    }
+
+    #[test]
+    fn select_languages_daily_from_full_pool() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
+        let langs = select_languages(&GameMode::Daily, date);
+        for lang in &langs {
+            assert!(Language::all().contains(lang));
+        }
+    }
+
+    #[test]
+    fn select_languages_medium_returns_five_from_medium_pool() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
+        let langs = select_languages(&GameMode::Medium, date);
+        assert_eq!(langs.len(), 5);
+        for lang in &langs {
+            assert!(Language::medium_pool().contains(lang));
+        }
+    }
+
+    #[tokio::test]
+    async fn get_game_with_mode_daily_returns_200_and_five_rounds() {
+        let (app, _) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?mode=daily")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let game = parse_game_view(response).await;
+        assert_eq!(game.rounds.len(), 5);
+    }
+
+    #[tokio::test]
+    async fn daily_mode_stored_session_has_daily_mode() {
+        let (app, store) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?mode=daily")).await.unwrap();
+        let game = parse_game_view(response).await;
+        let locked = store.lock().unwrap();
+        assert_eq!(locked[&game.game_id].mode, GameMode::Daily);
+    }
+
+    #[tokio::test]
+    async fn daily_mode_near_miss_gets_partial_score_not_zero() {
+        let (app, store) = make_app(MockWikipediaClient::failing());
+        let (session, game_id, round_id) = make_session_with_mode(Language::French, "Bonjour.", GameMode::Daily);
+        seed_session(&store, session);
+
+        let body = serde_json::json!({ "round_id": round_id, "language": "Spanish" });
+        let result = parse_guess_response(
+            app.oneshot(post_request(&guess_url(game_id), body)).await.unwrap()
+        ).await;
+
+        assert!(!result.correct);
+        assert!(result.score.total > 0, "Daily mode should use partial scoring, not binary");
     }
 
     // --- make_options ---
