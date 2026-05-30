@@ -7,6 +7,7 @@ pub enum GameMode {
     #[default]
     Medium,
     Hard,
+    Daily,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -96,6 +97,7 @@ impl GameMode {
             GameMode::Easy   => "Easy",
             GameMode::Medium => "Medium",
             GameMode::Hard   => "Hard",
+            GameMode::Daily  => "Daily",
         }
     }
 }
@@ -481,6 +483,22 @@ mod tests {
     #[test]
     fn game_mode_hard_label() {
         assert_eq!(GameMode::Hard.label(), "Hard");
+    }
+
+    #[test]
+    fn game_mode_daily_label() {
+        assert_eq!(GameMode::Daily.label(), "Daily");
+    }
+
+    #[test]
+    fn game_mode_daily_deserialises_from_lowercase() {
+        let mode: GameMode = serde_json::from_str(r#""daily""#).unwrap();
+        assert_eq!(mode, GameMode::Daily);
+    }
+
+    #[test]
+    fn game_mode_daily_serialises_as_lowercase() {
+        assert_eq!(serde_json::to_string(&GameMode::Daily).unwrap(), r#""daily""#);
     }
 
     #[test]
