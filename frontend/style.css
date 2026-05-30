@@ -75,15 +75,21 @@ body {
   letter-spacing: 0.01em;
 }
 
-/* --- Mode buttons --- */
+/* --- Primary buttons (home screen) --- */
 
-.mode-buttons {
+.primary-buttons {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   width: 100%;
   max-width: 300px;
   margin-top: 0.5rem;
+}
+
+.play-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .mode-btn {
@@ -101,58 +107,96 @@ body {
 .mode-btn:hover  { transform: translateY(-1px); }
 .mode-btn:active { transform: translateY(0); }
 
-.mode-btn.easy {
+.mode-btn.play {
+  background: #2e2618;
+  color: var(--gold-bright);
+  border: 1px solid rgba(224, 173, 74, 0.25);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.mode-btn.play:hover,
+.mode-btn.play.open {
+  background: #382e1e;
+  border-color: rgba(224, 173, 74, 0.5);
+}
+
+/* --- Difficulty picker --- */
+
+.difficulty-picker {
+  display: flex;
+  gap: 0.5rem;
+  animation: picker-in 0.15s ease;
+}
+
+@keyframes picker-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.difficulty-btn {
+  flex: 1;
+  padding: 0.6rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  letter-spacing: 0.02em;
+}
+
+.difficulty-btn:hover  { transform: translateY(-1px); }
+.difficulty-btn:active { transform: translateY(0); }
+
+.difficulty-btn.easy {
   background: #2e2618;
   color: #c4a96a;
   border: 1px solid rgba(196, 169, 106, 0.2);
 }
 
-.mode-btn.easy:hover {
+.difficulty-btn.easy:hover {
   background: #382e1e;
   border-color: rgba(196, 169, 106, 0.4);
 }
 
-.mode-btn.medium {
+.difficulty-btn.medium {
   background: #3a2e10;
   color: #c9963a;
   border: 1px solid rgba(201, 150, 58, 0.25);
 }
 
-.mode-btn.medium:hover {
+.difficulty-btn.medium:hover {
   background: #453615;
   border-color: rgba(201, 150, 58, 0.45);
 }
 
-.mode-btn.hard {
+.difficulty-btn.hard {
   background: #2e1e14;
   color: #c07a5a;
   border: 1px solid rgba(192, 122, 90, 0.2);
 }
 
-.mode-btn.hard:hover {
+.difficulty-btn.hard:hover {
   background: #3a2518;
   border-color: rgba(192, 122, 90, 0.4);
 }
 
 .daily-button {
   width: 100%;
-  max-width: 300px;
-  margin-top: 1.2rem;
-  padding-top: 1.2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .mode-btn.daily {
-  background: #1e2614;
-  color: #8ab454;
-  border: 1px solid rgba(138, 180, 84, 0.25);
+  background: #281a0e;
+  color: #d4956a;
+  border: 1px solid rgba(212, 149, 106, 0.25);
   font-weight: 700;
   letter-spacing: 0.12em;
 }
 
 .mode-btn.daily:hover {
-  background: #26321a;
-  border-color: rgba(138, 180, 84, 0.45);
+  background: #33200f;
+  border-color: rgba(212, 149, 106, 0.5);
 }
 
 .daily-played {
@@ -161,8 +205,8 @@ body {
   align-items: center;
   gap: 0.3rem;
   padding: 0.75rem 1rem;
-  background: rgba(138, 180, 84, 0.07);
-  border: 1px solid rgba(138, 180, 84, 0.18);
+  background: rgba(212, 149, 106, 0.06);
+  border: 1px solid rgba(212, 149, 106, 0.18);
   border-radius: var(--radius-sm);
   width: 100%;
 }
@@ -174,7 +218,7 @@ body {
 
 .daily-played-score {
   font-size: 0.8rem;
-  color: #8ab454;
+  color: #d4956a;
   font-weight: 600;
   letter-spacing: 0.04em;
 }
@@ -208,8 +252,8 @@ body {
   gap: 0.6rem;
   margin-top: 0.5rem;
   padding: 0.9rem 1.2rem;
-  background: rgba(138, 180, 84, 0.07);
-  border: 1px solid rgba(138, 180, 84, 0.18);
+  background: rgba(212, 149, 106, 0.06);
+  border: 1px solid rgba(212, 149, 106, 0.18);
   border-radius: var(--radius-sm);
   width: 100%;
   max-width: 380px;
@@ -227,8 +271,8 @@ body {
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   background: transparent;
-  color: #8ab454;
-  border: 1px solid rgba(138, 180, 84, 0.4);
+  color: #d4956a;
+  border: 1px solid rgba(212, 149, 106, 0.4);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
@@ -236,8 +280,8 @@ body {
 }
 
 .copy-btn:hover {
-  background: rgba(138, 180, 84, 0.1);
-  border-color: rgba(138, 180, 84, 0.6);
+  background: rgba(212, 149, 106, 0.1);
+  border-color: rgba(212, 149, 106, 0.6);
 }
 
 /* --- Loading / Error --- */
