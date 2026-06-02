@@ -18,6 +18,7 @@ use api::fetch_game;
 use components::{ErrorScreen, FeedbackModal, FinishedScreen, HomeScreen, LoadingScreen, RoundScreen};
 use daily::{daily_already_played, DailyEntry, STORAGE_KEY};
 use score::round_result_emoji;
+use seed::parse_url_seed;
 
 #[derive(Clone)]
 pub struct RoundResult {
@@ -80,6 +81,21 @@ pub fn App() -> impl IntoView {
             if daily_already_played(&entry, &today) {
                 daily_result.set(Some(entry));
             }
+        }
+    });
+
+    Effect::new(move |_| {
+        let search = leptos::web_sys::window()
+            .and_then(|w| w.location().search().ok())
+            .unwrap_or_default();
+        if let Some((seed, mode)) = parse_url_seed(&search) {
+            phase.set(GamePhase::Loading);
+            spawn_local(async move {
+                match fetch_game(&mode, Some(&seed)).await {
+                    Ok(game) => phase.set(GamePhase::Playing { game, mode, seed: Some(seed) }),
+                    Err(e)   => phase.set(GamePhase::Error(e)),
+                }
+            });
         }
     });
 
