@@ -8,6 +8,12 @@ Five rounds, 75 possible languages, three difficulty levels.
 
 **Play at [linguaguessr.io](https://linguaguessr.io)**
 
+## Modes
+
+- **Play** — pick a difficulty and start immediately.
+- **Daily** — one fixed set of languages per day, same for everyone. Come back tomorrow for a new one.
+- **Challenge** — generate a shareable link and send it to friends. Anyone who opens it plays the exact same game. Scores are collected anonymously and shown on the finished screen so you can compare.
+
 ## Difficulty levels
 
 - **Easy** — 10 of the world's most spoken languages, four multiple-choice options. Correct or nothing.
@@ -42,6 +48,4 @@ Rust all the way down — Axum backend, Leptos frontend compiled to WASM, shared
 
 ## Roadmap
 
-- Daily challenge mode
-- Leaderboard
 - Real-life images of text (street signs, menus, handwriting)
