@@ -1,14 +1,16 @@
 use common::types::GameMode;
 use leptos::prelude::*;
+use leptos::task::spawn_local;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::animation::ease_out_cubic;
+use crate::api::{fetch_seed_scores, post_seed_score};
 use crate::feedback_strings::FEEDBACK_BUTTON_LABEL;
 use crate::mode::{mode_str, show_score_breakdown};
-use crate::score::{display_score, format_share_text, max_score, round_result_emoji};
+use crate::score::{display_score, format_share_text, max_score, round_result_emoji, sort_scores_descending};
 use crate::RoundResult;
 
 fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) {
@@ -54,6 +56,17 @@ pub fn FinishedScreen(
     let is_seeded         = seed.is_some();
     let seed_store        = StoredValue::new(seed.unwrap_or_default());
     let mode_str_stored   = StoredValue::new(mode_str(&mode).to_string());
+    let challenge_scores  = RwSignal::new(Option::<Vec<u32>>::None);
+
+    if is_seeded {
+        let seed_for_async = seed_store.get_value();
+        spawn_local(async move {
+            let _ = post_seed_score(&seed_for_async, score).await;
+            if let Ok(scores) = fetch_seed_scores(&seed_for_async).await {
+                challenge_scores.set(Some(sort_scores_descending(scores)));
+            }
+        });
+    }
 
     let animated = RwSignal::new(0.0_f64);
 
@@ -205,6 +218,17 @@ pub fn FinishedScreen(
                     }>
                         {move || if link_copied.get() { "Copied!" } else { "Copy link" }}
                     </button>
+                </div>
+            })}
+
+            {move || challenge_scores.get().map(|scores| view! {
+                <div class="challenge-scores">
+                    <p class="challenge-scores-heading">"Scores for this challenge"</p>
+                    <ul class="challenge-scores-list">
+                        {scores.into_iter().map(|s| view! {
+                            <li class="challenge-score-item">{s}</li>
+                        }).collect_view()}
+                    </ul>
                 </div>
             })}
 

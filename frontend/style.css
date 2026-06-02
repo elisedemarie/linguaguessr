@@ -340,6 +340,51 @@ body {
   margin: 0.25rem 0;
 }
 
+/* --- Challenge scores leaderboard --- */
+
+.challenge-scores {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.9rem 1.2rem;
+  background: rgba(168, 144, 112, 0.05);
+  border: 1px solid rgba(168, 144, 112, 0.15);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 380px;
+}
+
+.challenge-scores-heading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.challenge-scores-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.challenge-score-item {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #c0aa88;
+  background: rgba(168, 144, 112, 0.1);
+  border: 1px solid rgba(168, 144, 112, 0.2);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+}
+
 /* --- Loading / Error --- */
 
 .loading, .error {

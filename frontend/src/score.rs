@@ -22,6 +22,11 @@ pub fn round_result_emoji(score: u32) -> &'static str {
     }
 }
 
+pub fn sort_scores_descending(mut scores: Vec<u32>) -> Vec<u32> {
+    scores.sort_unstable_by(|a, b| b.cmp(a));
+    scores
+}
+
 pub fn format_share_text(date: &str, emojis: &str, total_score: u32) -> String {
     format!("LinguaGuessr Daily — {date}\n{emojis}\n{total_score} / 5000\nlinguaguessr.io")
 }
@@ -105,6 +110,33 @@ mod tests {
     #[test]
     fn just_below_perfect_is_yellow() {
         assert_eq!(round_result_emoji(999), "🟨");
+    }
+
+    // --- sort_scores_descending ---
+
+    #[test]
+    fn sort_scores_descending_highest_first() {
+        assert_eq!(sort_scores_descending(vec![1000, 4000, 2000]), vec![4000, 2000, 1000]);
+    }
+
+    #[test]
+    fn sort_scores_descending_already_sorted_unchanged() {
+        assert_eq!(sort_scores_descending(vec![5000, 3000, 1000]), vec![5000, 3000, 1000]);
+    }
+
+    #[test]
+    fn sort_scores_descending_empty_returns_empty() {
+        assert_eq!(sort_scores_descending(vec![]), Vec::<u32>::new());
+    }
+
+    #[test]
+    fn sort_scores_descending_single_element() {
+        assert_eq!(sort_scores_descending(vec![2500]), vec![2500]);
+    }
+
+    #[test]
+    fn sort_scores_descending_equal_scores_preserved() {
+        assert_eq!(sort_scores_descending(vec![1000, 1000, 1000]), vec![1000, 1000, 1000]);
     }
 
     // --- format_share_text ---
