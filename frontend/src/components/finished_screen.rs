@@ -7,7 +7,7 @@ use wasm_bindgen::JsCast;
 
 use crate::animation::ease_out_cubic;
 use crate::feedback_strings::FEEDBACK_BUTTON_LABEL;
-use crate::mode::show_score_breakdown;
+use crate::mode::{mode_str, show_score_breakdown};
 use crate::score::{display_score, format_share_text, max_score, round_result_emoji};
 use crate::RoundResult;
 
@@ -23,6 +23,7 @@ pub fn FinishedScreen(
     score:         u32,
     mode:          GameMode,
     rounds:        Vec<RoundResult>,
+    seed:          Option<String>,
     on_play_again: impl Fn(leptos::web_sys::MouseEvent) + 'static,
     on_report:     Callback<()>,
 ) -> impl IntoView {
@@ -47,8 +48,12 @@ pub fn FinishedScreen(
         String::new()
     };
 
-    let copied           = RwSignal::new(false);
-    let share_text_store = StoredValue::new(share_text);
+    let copied            = RwSignal::new(false);
+    let share_text_store  = StoredValue::new(share_text);
+    let link_copied       = RwSignal::new(false);
+    let is_seeded         = seed.is_some();
+    let seed_store        = StoredValue::new(seed.unwrap_or_default());
+    let mode_str_stored   = StoredValue::new(mode_str(&mode).to_string());
 
     let animated = RwSignal::new(0.0_f64);
 
@@ -174,6 +179,29 @@ pub fn FinishedScreen(
                         });
                     }>
                         {move || if copied.get() { "Copied!" } else { "Copy result" }}
+                    </button>
+                </div>
+            })}
+
+            {is_seeded.then(|| view! {
+                <div class="seed-share">
+                    <p class="seed-code">{seed_store.get_value()}</p>
+                    <button class="copy-btn" on:click=move |_| {
+                        let seed = seed_store.get_value();
+                        let mode = mode_str_stored.get_value();
+                        link_copied.set(true);
+                        leptos::task::spawn_local(async move {
+                            if let Some(window) = leptos::web_sys::window() {
+                                let origin = window.location().origin().unwrap_or_default();
+                                let url = format!("{}/?seed={}&mode={}", origin, seed, mode);
+                                let clipboard = window.navigator().clipboard();
+                                let _ = wasm_bindgen_futures::JsFuture::from(
+                                    clipboard.write_text(&url)
+                                ).await;
+                            }
+                        });
+                    }>
+                        {move || if link_copied.get() { "Copied!" } else { "Copy link" }}
                     </button>
                 </div>
             })}
