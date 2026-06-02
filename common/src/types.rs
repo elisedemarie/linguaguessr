@@ -1,5 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+fn fnv1a_64(s: &str) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in s.bytes() {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum GameMode {
@@ -412,14 +421,21 @@ impl Language {
         Self::suggestions_for(query, Self::all())
     }
 
+    pub fn seeded_languages(seed: &str, pool: &[Language]) -> [Language; 5] {
+        Self::pick_five(fnv1a_64(seed), pool)
+    }
+
     pub fn daily_languages(date: chrono::NaiveDate) -> [Language; 5] {
         use chrono::Datelike;
+        Self::pick_five(date.num_days_from_ce() as u64, Self::all())
+    }
+
+    fn pick_five(seed: u64, pool: &[Language]) -> [Language; 5] {
         use rand::SeedableRng;
         use rand::seq::SliceRandom;
 
-        let seed = date.num_days_from_ce() as u64;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
-        let mut pool = Self::all().to_vec();
+        let mut pool = pool.to_vec();
         pool.shuffle(&mut rng);
         [pool[0], pool[1], pool[2], pool[3], pool[4]]
     }
@@ -465,6 +481,67 @@ mod tests {
         let langs = Language::daily_languages(date);
         for lang in &langs {
             assert!(Language::all().contains(lang));
+        }
+    }
+
+    // --- seeded_languages ---
+
+    #[test]
+    fn seeded_languages_returns_exactly_five() {
+        let result = Language::seeded_languages("ABC123", Language::all());
+        assert_eq!(result.len(), 5);
+    }
+
+    #[test]
+    fn seeded_languages_same_seed_same_pool_same_result() {
+        let a = Language::seeded_languages("ABC123", Language::all());
+        let b = Language::seeded_languages("ABC123", Language::all());
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn seeded_languages_different_seeds_different_results() {
+        let a = Language::seeded_languages("ABC123", Language::all());
+        let b = Language::seeded_languages("XYZ789", Language::all());
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn seeded_languages_all_distinct() {
+        let langs = Language::seeded_languages("ABC123", Language::all());
+        let unique: std::collections::HashSet<_> = langs.iter().collect();
+        assert_eq!(unique.len(), 5);
+    }
+
+    #[test]
+    fn seeded_languages_all_in_given_pool() {
+        let pool = Language::easy_pool();
+        let langs = Language::seeded_languages("ABC123", pool);
+        for lang in &langs {
+            assert!(pool.contains(lang));
+        }
+    }
+
+    #[test]
+    fn seeded_languages_same_seed_different_pool_gives_different_results() {
+        let easy   = Language::seeded_languages("ABC123", Language::easy_pool());
+        let medium = Language::seeded_languages("ABC123", Language::medium_pool());
+        assert_ne!(easy, medium);
+    }
+
+    #[test]
+    fn seeded_languages_known_seed_pins_hash_algorithm() {
+        // Pins the FNV-1a hash output — catches silent changes to the hash function
+        let langs = Language::seeded_languages("ABC123", Language::all());
+        assert_eq!(langs, [Language::Punjabi, Language::Romanian, Language::Hindi, Language::Basque, Language::German]);
+    }
+
+    #[test]
+    fn seeded_languages_respects_easy_pool_membership() {
+        let pool  = Language::easy_pool();
+        let langs = Language::seeded_languages("HELLO1", pool);
+        for lang in &langs {
+            assert!(pool.contains(lang), "{lang:?} not in easy pool");
         }
     }
 
