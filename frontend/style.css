@@ -121,6 +121,20 @@ body {
   border-color: rgba(224, 173, 74, 0.5);
 }
 
+.mode-btn.challenge {
+  background: #2e1e18;
+  color: #d4a08a;
+  border: 1px solid rgba(212, 160, 138, 0.22);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.mode-btn.challenge:hover,
+.mode-btn.challenge.open {
+  background: #38241e;
+  border-color: rgba(212, 160, 138, 0.45);
+}
+
 /* --- Difficulty picker --- */
 
 .difficulty-picker {
@@ -148,6 +162,11 @@ body {
 
 .difficulty-btn:hover  { transform: translateY(-1px); }
 .difficulty-btn:active { transform: translateY(0); }
+
+.difficulty-btn.selected {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
 
 .difficulty-btn.easy {
   background: #2e2618;
@@ -189,14 +208,16 @@ body {
 .mode-btn.daily {
   background: #281a0e;
   color: #d4956a;
-  border: 1px solid rgba(212, 149, 106, 0.25);
+  border: 1px solid rgba(212, 149, 106, 0.35);
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
+  padding: 1.2rem 2rem;
+  font-size: 1.05rem;
 }
 
 .mode-btn.daily:hover {
   background: #33200f;
-  border-color: rgba(212, 149, 106, 0.5);
+  border-color: rgba(212, 149, 106, 0.6);
 }
 
 .daily-played {
@@ -282,6 +303,150 @@ body {
 .copy-btn:hover {
   background: rgba(212, 149, 106, 0.1);
   border-color: rgba(212, 149, 106, 0.6);
+}
+
+/* --- Challenge setup (home screen) --- */
+
+.challenge-setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  background: rgba(212, 160, 138, 0.06);
+  border: 1px solid rgba(212, 160, 138, 0.2);
+  border-radius: var(--radius-sm);
+  animation: picker-in 0.15s ease;
+}
+
+.challenge-setup-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
+  text-align: center;
+}
+
+
+.challenge-setup-seed {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: #d4a08a;
+  margin: 0;
+}
+
+.challenge-setup-hint {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0;
+  text-align: center;
+}
+
+.challenge-setup-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.start-btn {
+  padding: 0.45rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  background: #d4a08a;
+  color: #1a1208;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s;
+}
+
+.start-btn:hover {
+  background: #ddb09a;
+}
+
+/* --- Challenge / seed share --- */
+
+.seed-share {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.9rem 1.2rem;
+  background: rgba(168, 144, 112, 0.05);
+  border: 1px solid rgba(168, 144, 112, 0.18);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 380px;
+}
+
+.seed-share-heading {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #c0aa88;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.seed-share-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
+  text-align: center;
+}
+
+
+/* --- Challenge scores leaderboard --- */
+
+.challenge-scores {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.9rem 1.2rem;
+  background: rgba(168, 144, 112, 0.05);
+  border: 1px solid rgba(168, 144, 112, 0.15);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 380px;
+}
+
+.challenge-scores-heading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.challenge-scores-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.challenge-score-item {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #c0aa88;
+  background: rgba(168, 144, 112, 0.1);
+  border: 1px solid rgba(168, 144, 112, 0.2);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+}
+
+.challenge-score-item.mine {
+  color: var(--gold-bright);
+  background: rgba(224, 173, 74, 0.12);
+  border-color: rgba(224, 173, 74, 0.35);
 }
 
 /* --- Loading / Error --- */

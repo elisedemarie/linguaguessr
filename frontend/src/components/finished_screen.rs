@@ -1,14 +1,16 @@
 use common::types::GameMode;
 use leptos::prelude::*;
+use leptos::task::spawn_local;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::animation::ease_out_cubic;
+use crate::api::{fetch_seed_scores, post_seed_score};
 use crate::feedback_strings::FEEDBACK_BUTTON_LABEL;
-use crate::mode::show_score_breakdown;
-use crate::score::{display_score, format_share_text, max_score, round_result_emoji};
+use crate::mode::{mode_str, show_score_breakdown};
+use crate::score::{display_score, format_share_text, max_score, round_result_emoji, sort_scores_descending};
 use crate::RoundResult;
 
 fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) {
@@ -23,6 +25,7 @@ pub fn FinishedScreen(
     score:         u32,
     mode:          GameMode,
     rounds:        Vec<RoundResult>,
+    seed:          Option<String>,
     on_play_again: impl Fn(leptos::web_sys::MouseEvent) + 'static,
     on_report:     Callback<()>,
 ) -> impl IntoView {
@@ -47,8 +50,24 @@ pub fn FinishedScreen(
         String::new()
     };
 
-    let copied           = RwSignal::new(false);
-    let share_text_store = StoredValue::new(share_text);
+    let copied            = RwSignal::new(false);
+    let share_text_store  = StoredValue::new(share_text);
+    let link_copied       = RwSignal::new(false);
+    let is_seeded         = seed.is_some();
+    let seed_store        = StoredValue::new(seed.unwrap_or_default());
+    let mode_str_stored   = StoredValue::new(mode_str(&mode).to_string());
+    let challenge_scores  = RwSignal::new(Option::<Vec<u32>>::None);
+
+    if is_seeded {
+        let seed_for_async = seed_store.get_value();
+        let mode_for_async = mode.clone();
+        spawn_local(async move {
+            let _ = post_seed_score(&seed_for_async, &mode_for_async, score).await;
+            if let Ok(scores) = fetch_seed_scores(&seed_for_async, &mode_for_async).await {
+                challenge_scores.set(Some(sort_scores_descending(scores)));
+            }
+        });
+    }
 
     let animated = RwSignal::new(0.0_f64);
 
@@ -174,6 +193,44 @@ pub fn FinishedScreen(
                         });
                     }>
                         {move || if copied.get() { "Copied!" } else { "Copy result" }}
+                    </button>
+                </div>
+            })}
+
+            {move || challenge_scores.get().map(|scores| view! {
+                <div class="challenge-scores">
+                    <p class="challenge-scores-heading">"Scores for this challenge"</p>
+                    <ul class="challenge-scores-list">
+                        {scores.into_iter().map(|s| {
+                            let is_mine = s == score;
+                            view! {
+                                <li class="challenge-score-item" class:mine=is_mine>{display_score(s, &mode)}</li>
+                            }
+                        }).collect_view()}
+                    </ul>
+                </div>
+            })}
+
+            {is_seeded.then(|| view! {
+                <div class="seed-share">
+                    <p class="seed-share-heading">"Challenge your friends"</p>
+                    <p class="seed-share-sub">"Share this link — they'll play the exact same game"</p>
+                    <button class="copy-btn" on:click=move |_| {
+                        let seed = seed_store.get_value();
+                        let mode = mode_str_stored.get_value();
+                        link_copied.set(true);
+                        leptos::task::spawn_local(async move {
+                            if let Some(window) = leptos::web_sys::window() {
+                                let origin = window.location().origin().unwrap_or_default();
+                                let url = format!("{}/?seed={}&mode={}", origin, seed, mode);
+                                let clipboard = window.navigator().clipboard();
+                                let _ = wasm_bindgen_futures::JsFuture::from(
+                                    clipboard.write_text(&url)
+                                ).await;
+                            }
+                        });
+                    }>
+                        {move || if link_copied.get() { "Copied!" } else { "Copy link" }}
                     </button>
                 </div>
             })}
