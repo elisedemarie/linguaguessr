@@ -60,9 +60,10 @@ pub fn FinishedScreen(
 
     if is_seeded {
         let seed_for_async = seed_store.get_value();
+        let mode_for_async = mode.clone();
         spawn_local(async move {
-            let _ = post_seed_score(&seed_for_async, score).await;
-            if let Ok(scores) = fetch_seed_scores(&seed_for_async).await {
+            let _ = post_seed_score(&seed_for_async, &mode_for_async, score).await;
+            if let Ok(scores) = fetch_seed_scores(&seed_for_async, &mode_for_async).await {
                 challenge_scores.set(Some(sort_scores_descending(scores)));
             }
         });
@@ -196,11 +197,24 @@ pub fn FinishedScreen(
                 </div>
             })}
 
+            {move || challenge_scores.get().map(|scores| view! {
+                <div class="challenge-scores">
+                    <p class="challenge-scores-heading">"Scores for this challenge"</p>
+                    <ul class="challenge-scores-list">
+                        {scores.into_iter().map(|s| {
+                            let is_mine = s == score;
+                            view! {
+                                <li class="challenge-score-item" class:mine=is_mine>{display_score(s, &mode)}</li>
+                            }
+                        }).collect_view()}
+                    </ul>
+                </div>
+            })}
+
             {is_seeded.then(|| view! {
                 <div class="seed-share">
                     <p class="seed-share-heading">"Challenge your friends"</p>
                     <p class="seed-share-sub">"Share this link — they'll play the exact same game"</p>
-                    <p class="seed-code">{seed_store.get_value()}</p>
                     <button class="copy-btn" on:click=move |_| {
                         let seed = seed_store.get_value();
                         let mode = mode_str_stored.get_value();
@@ -218,17 +232,6 @@ pub fn FinishedScreen(
                     }>
                         {move || if link_copied.get() { "Copied!" } else { "Copy link" }}
                     </button>
-                </div>
-            })}
-
-            {move || challenge_scores.get().map(|scores| view! {
-                <div class="challenge-scores">
-                    <p class="challenge-scores-heading">"Scores for this challenge"</p>
-                    <ul class="challenge-scores-list">
-                        {scores.into_iter().map(|s| view! {
-                            <li class="challenge-score-item">{s}</li>
-                        }).collect_view()}
-                    </ul>
                 </div>
             })}
 

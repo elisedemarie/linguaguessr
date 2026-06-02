@@ -28,7 +28,7 @@ fn build_router(state: AppState, frontend_url: Option<&str>) -> Router {
         .route("/api/game", get(get_game))
         .route("/api/game/:game_id/guess", post(post_guess))
         .route("/api/feedback", post(post_feedback))
-        .route("/api/seeds/:seed/scores", get(get_seed_scores).post(post_seed_score))
+        .route("/api/seeds/:seed/:mode/scores", get(get_seed_scores).post(post_seed_score))
         .layer(cors)
         .with_state(state)
 }

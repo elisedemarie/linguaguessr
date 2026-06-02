@@ -163,6 +163,11 @@ body {
 .difficulty-btn:hover  { transform: translateY(-1px); }
 .difficulty-btn:active { transform: translateY(0); }
 
+.difficulty-btn.selected {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 .difficulty-btn.easy {
   background: #2e2618;
   color: #c4a96a;
@@ -300,6 +305,67 @@ body {
   border-color: rgba(212, 149, 106, 0.6);
 }
 
+/* --- Challenge setup (home screen) --- */
+
+.challenge-setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  background: rgba(212, 160, 138, 0.06);
+  border: 1px solid rgba(212, 160, 138, 0.2);
+  border-radius: var(--radius-sm);
+  animation: picker-in 0.15s ease;
+}
+
+.challenge-setup-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
+  text-align: center;
+}
+
+
+.challenge-setup-seed {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: #d4a08a;
+  margin: 0;
+}
+
+.challenge-setup-hint {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0;
+  text-align: center;
+}
+
+.challenge-setup-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.start-btn {
+  padding: 0.45rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  background: #d4a08a;
+  color: #1a1208;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s;
+}
+
+.start-btn:hover {
+  background: #ddb09a;
+}
+
 /* --- Challenge / seed share --- */
 
 .seed-share {
@@ -331,14 +397,6 @@ body {
   text-align: center;
 }
 
-.seed-code {
-  font-size: 1.4rem;
-  font-weight: 700;
-  font-family: 'Inter', monospace;
-  letter-spacing: 0.25em;
-  color: #c0aa88;
-  margin: 0.25rem 0;
-}
 
 /* --- Challenge scores leaderboard --- */
 
@@ -383,6 +441,12 @@ body {
   border: 1px solid rgba(168, 144, 112, 0.2);
   border-radius: 4px;
   padding: 0.2rem 0.6rem;
+}
+
+.challenge-score-item.mine {
+  color: var(--gold-bright);
+  background: rgba(224, 173, 74, 0.12);
+  border-color: rgba(224, 173, 74, 0.35);
 }
 
 /* --- Loading / Error --- */
