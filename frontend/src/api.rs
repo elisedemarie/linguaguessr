@@ -25,10 +25,15 @@ const BACKEND_URL: &str = match option_env!("BACKEND_URL") {
     None => "http://localhost:3000",
 };
 
-pub async fn fetch_game(mode: &GameMode) -> Result<GameView, String> {
-    let response = gloo_net::http::Request::get(
-        &format!("{BACKEND_URL}/api/game?mode={}", mode_str(mode))
-    )
+pub(crate) fn game_url(backend: &str, mode: &GameMode, seed: Option<&str>) -> String {
+    match seed {
+        Some(s) => format!("{backend}/api/game?seed={s}&mode={}", mode_str(mode)),
+        None    => format!("{backend}/api/game?mode={}", mode_str(mode)),
+    }
+}
+
+pub async fn fetch_game(mode: &GameMode, seed: Option<&str>) -> Result<GameView, String> {
+    let response = gloo_net::http::Request::get(&game_url(BACKEND_URL, mode, seed))
     .send()
     .await
     .map_err(|e| format!("Network error: {e}"))?;
@@ -89,6 +94,33 @@ pub async fn submit_feedback(payload: &FeedbackPayload) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use common::types::GameMode;
+
+    // --- game_url ---
+
+    #[test]
+    fn game_url_without_seed_includes_mode() {
+        let url = game_url("http://localhost:3000", &GameMode::Medium, None);
+        assert_eq!(url, "http://localhost:3000/api/game?mode=medium");
+    }
+
+    #[test]
+    fn game_url_without_seed_easy() {
+        let url = game_url("http://localhost:3000", &GameMode::Easy, None);
+        assert_eq!(url, "http://localhost:3000/api/game?mode=easy");
+    }
+
+    #[test]
+    fn game_url_with_seed_includes_both() {
+        let url = game_url("http://localhost:3000", &GameMode::Hard, Some("ABC123"));
+        assert_eq!(url, "http://localhost:3000/api/game?seed=ABC123&mode=hard");
+    }
+
+    #[test]
+    fn game_url_with_seed_medium() {
+        let url = game_url("http://localhost:3000", &GameMode::Medium, Some("XYZ789"));
+        assert_eq!(url, "http://localhost:3000/api/game?seed=XYZ789&mode=medium");
+    }
 
     fn only_message() -> FeedbackPayload {
         FeedbackPayload {

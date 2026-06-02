@@ -5,6 +5,7 @@ mod daily;
 mod feedback_strings;
 mod mode;
 mod score;
+mod seed;
 
 use common::api::{GameView, GuessResponse};
 use common::types::{GameMode, Language};
@@ -35,8 +36,8 @@ pub struct RoundContext {
 enum GamePhase {
     Home,
     Loading,
-    Playing { game: GameView, mode: GameMode },
-    Finished { score: u32, mode: GameMode, rounds: Vec<RoundResult> },
+    Playing { game: GameView, mode: GameMode, seed: Option<String> },
+    Finished { score: u32, mode: GameMode, rounds: Vec<RoundResult>, seed: Option<String> },
     Error(String),
 }
 
@@ -87,11 +88,11 @@ pub fn App() -> impl IntoView {
         phase.set(GamePhase::Home);
     };
 
-    let start_game = Callback::new(move |mode: GameMode| {
+    let start_game = Callback::new(move |(mode, seed): (GameMode, Option<String>)| {
         phase.set(GamePhase::Loading);
         spawn_local(async move {
-            match fetch_game(&mode).await {
-                Ok(game) => phase.set(GamePhase::Playing { game, mode }),
+            match fetch_game(&mode, seed.as_deref()).await {
+                Ok(game) => phase.set(GamePhase::Playing { game, mode, seed }),
                 Err(e)   => phase.set(GamePhase::Error(e)),
             }
         });
@@ -102,7 +103,7 @@ pub fn App() -> impl IntoView {
             {move || match phase.get() {
                 GamePhase::Home => view! {
                     <HomeScreen
-                        on_play=start_game
+                        on_start=start_game
                         on_report=Callback::new(move |()| modal_open.set(true))
                         daily_result=Signal::derive(move || daily_result.get())
                     />
@@ -110,7 +111,7 @@ pub fn App() -> impl IntoView {
                 GamePhase::Loading => view! {
                     <LoadingScreen />
                 }.into_any(),
-                GamePhase::Playing { game, mode } => {
+                GamePhase::Playing { game, mode, seed } => {
                     view! {
                         <RoundScreen
                             game=game
@@ -125,16 +126,17 @@ pub fn App() -> impl IntoView {
                                     write_daily_entry(&entry);
                                     daily_result.set(Some(entry));
                                 }
-                                phase.set(GamePhase::Finished { score, mode: mode.clone(), rounds });
+                                phase.set(GamePhase::Finished { score, mode: mode.clone(), rounds, seed: seed.clone() });
                             })
                         />
                     }.into_any()
                 },
-                GamePhase::Finished { score, mode, rounds } => view! {
+                GamePhase::Finished { score, mode, rounds, seed } => view! {
                     <FinishedScreen
                         score=score
                         mode=mode
                         rounds=rounds
+                        seed=seed
                         on_play_again=go_home
                         on_report=Callback::new(move |()| modal_open.set(true))
                     />
