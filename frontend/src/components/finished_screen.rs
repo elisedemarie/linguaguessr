@@ -185,6 +185,8 @@ pub fn FinishedScreen(
 
             {is_seeded.then(|| view! {
                 <div class="seed-share">
+                    <p class="seed-share-heading">"Challenge your friends"</p>
+                    <p class="seed-share-sub">"Share this link — they'll play the exact same game"</p>
                     <p class="seed-code">{seed_store.get_value()}</p>
                     <button class="copy-btn" on:click=move |_| {
                         let seed = seed_store.get_value();
