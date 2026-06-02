@@ -20,9 +20,20 @@ use futures::future::join_all;
 #[derive(Clone)]
 pub struct AppState {
     pub store:        Arc<Mutex<HashMap<Uuid, GameSession>>>,
+    pub seed_scores:  Arc<Mutex<HashMap<String, Vec<u32>>>>,
     pub wikipedia:    Arc<dyn WikipediaClient>,
     pub github:       Arc<dyn GitHubClient>,
     pub github_token: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SeedScoreRequest {
+    pub score: u32,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SeedScores {
+    pub scores: Vec<u32>,
 }
 
 #[derive(Deserialize)]
@@ -128,6 +139,29 @@ pub async fn post_guess(
     }).into_response()
 }
 
+pub async fn post_seed_score(
+    State(state): State<AppState>,
+    Path(seed): Path<String>,
+    Json(req): Json<SeedScoreRequest>,
+) -> impl IntoResponse {
+    state.seed_scores.lock().unwrap()
+        .entry(seed)
+        .or_default()
+        .push(req.score);
+    StatusCode::OK
+}
+
+pub async fn get_seed_scores(
+    State(state): State<AppState>,
+    Path(seed): Path<String>,
+) -> impl IntoResponse {
+    let scores = state.seed_scores.lock().unwrap()
+        .get(&seed)
+        .cloned()
+        .unwrap_or_default();
+    Json(SeedScores { scores })
+}
+
 pub async fn post_feedback(
     State(state): State<AppState>,
     Json(req): Json<FeedbackRequest>,
@@ -194,6 +228,7 @@ mod tests {
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
             store:        Arc::clone(&store),
+            seed_scores:  Arc::new(Mutex::new(HashMap::new())),
             wikipedia,
             github:       Arc::new(NoOpGitHubClient),
             github_token: "test_token".to_string(),
@@ -201,6 +236,7 @@ mod tests {
         let app = Router::new()
             .route("/api/game", get(get_game))
             .route("/api/game/:game_id/guess", axum::routing::post(post_guess))
+            .route("/api/seeds/:seed/scores", get(get_seed_scores).post(post_seed_score))
             .with_state(state);
         (app, store)
     }
@@ -325,6 +361,7 @@ mod tests {
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
             store:        Arc::clone(&store),
+            seed_scores:  Arc::new(Mutex::new(HashMap::new())),
             wikipedia:    Arc::new(OneFailsClient {
                 failed: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             }),
@@ -355,6 +392,7 @@ mod tests {
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
             store:        Arc::clone(&store),
+            seed_scores:  Arc::new(Mutex::new(HashMap::new())),
             wikipedia:    Arc::new(SlowClient),
             github:       Arc::new(NoOpGitHubClient),
             github_token: "test_token".to_string(),
@@ -816,6 +854,7 @@ mod tests {
     fn make_feedback_app(token: &str, github: Arc<dyn GitHubClient>) -> Router {
         let state = AppState {
             store:        Arc::new(Mutex::new(HashMap::new())),
+            seed_scores:  Arc::new(Mutex::new(HashMap::new())),
             wikipedia:    Arc::new(NoOpWikipediaClient),
             github,
             github_token: token.to_string(),
@@ -990,5 +1029,81 @@ mod tests {
         let (app, _store) = make_app(MockWikipediaClient::returning(sample_text()));
         let response = app.oneshot(get_request("/api/game?seed=ABC123&mode=hard")).await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    // --- seed scores ---
+
+    fn scores_post(seed: &str, score: u32) -> Request<axum::body::Body> {
+        post_request(
+            &format!("/api/seeds/{seed}/scores"),
+            serde_json::json!({ "score": score }),
+        )
+    }
+
+    async fn parse_seed_scores(response: axum::response::Response) -> SeedScores {
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        serde_json::from_slice(&bytes).unwrap()
+    }
+
+    #[tokio::test]
+    async fn post_seed_score_returns_200() {
+        let (app, _store) = make_app(MockWikipediaClient::failing());
+        let response = app.oneshot(scores_post("ABC123", 3000)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn get_seed_scores_unknown_seed_returns_empty_list() {
+        let (app, _store) = make_app(MockWikipediaClient::failing());
+        let response = app.oneshot(get_request("/api/seeds/UNKNOWN/scores")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let result = parse_seed_scores(response).await;
+        assert!(result.scores.is_empty());
+    }
+
+    fn make_scores_app() -> Router {
+        let state = AppState {
+            store:        Arc::new(Mutex::new(HashMap::new())),
+            seed_scores:  Arc::new(Mutex::new(HashMap::new())),
+            wikipedia:    MockWikipediaClient::failing(),
+            github:       Arc::new(NoOpGitHubClient),
+            github_token: "test_token".to_string(),
+        };
+        Router::new()
+            .route("/api/seeds/:seed/scores", get(get_seed_scores).post(post_seed_score))
+            .with_state(state)
+    }
+
+    #[tokio::test]
+    async fn get_seed_scores_after_one_post_returns_that_score() {
+        let app = make_scores_app();
+        app.clone().oneshot(scores_post("ABC123", 3000)).await.unwrap();
+        let response = app.oneshot(get_request("/api/seeds/ABC123/scores")).await.unwrap();
+        let result = parse_seed_scores(response).await;
+        assert_eq!(result.scores, vec![3000]);
+    }
+
+    #[tokio::test]
+    async fn get_seed_scores_accumulates_multiple_scores_in_order() {
+        let app = make_scores_app();
+        app.clone().oneshot(scores_post("ABC123", 2000)).await.unwrap();
+        app.clone().oneshot(scores_post("ABC123", 4000)).await.unwrap();
+        app.clone().oneshot(scores_post("ABC123", 1000)).await.unwrap();
+        let response = app.oneshot(get_request("/api/seeds/ABC123/scores")).await.unwrap();
+        let result = parse_seed_scores(response).await;
+        assert_eq!(result.scores, vec![2000, 4000, 1000]);
+    }
+
+    #[tokio::test]
+    async fn scores_for_different_seeds_are_independent() {
+        let app = make_scores_app();
+        app.clone().oneshot(scores_post("AAA111", 5000)).await.unwrap();
+        app.clone().oneshot(scores_post("BBB222", 1000)).await.unwrap();
+        let r1 = app.clone().oneshot(get_request("/api/seeds/AAA111/scores")).await.unwrap();
+        let r2 = app.oneshot(get_request("/api/seeds/BBB222/scores")).await.unwrap();
+        let s1 = parse_seed_scores(r1).await;
+        let s2 = parse_seed_scores(r2).await;
+        assert_eq!(s1.scores, vec![5000]);
+        assert_eq!(s2.scores, vec![1000]);
     }
 }
