@@ -141,11 +141,12 @@ pub async fn post_guess(
 
 pub async fn post_seed_score(
     State(state): State<AppState>,
-    Path(seed): Path<String>,
+    Path((seed, mode)): Path<(String, String)>,
     Json(req): Json<SeedScoreRequest>,
 ) -> impl IntoResponse {
+    let key = format!("{seed}:{mode}");
     state.seed_scores.lock().unwrap()
-        .entry(seed)
+        .entry(key)
         .or_default()
         .push(req.score);
     StatusCode::OK
@@ -153,10 +154,11 @@ pub async fn post_seed_score(
 
 pub async fn get_seed_scores(
     State(state): State<AppState>,
-    Path(seed): Path<String>,
+    Path((seed, mode)): Path<(String, String)>,
 ) -> impl IntoResponse {
+    let key = format!("{seed}:{mode}");
     let scores = state.seed_scores.lock().unwrap()
-        .get(&seed)
+        .get(&key)
         .cloned()
         .unwrap_or_default();
     Json(SeedScores { scores })
@@ -236,7 +238,7 @@ mod tests {
         let app = Router::new()
             .route("/api/game", get(get_game))
             .route("/api/game/:game_id/guess", axum::routing::post(post_guess))
-            .route("/api/seeds/:seed/scores", get(get_seed_scores).post(post_seed_score))
+            .route("/api/seeds/:seed/:mode/scores", get(get_seed_scores).post(post_seed_score))
             .with_state(state);
         (app, store)
     }
@@ -1033,9 +1035,9 @@ mod tests {
 
     // --- seed scores ---
 
-    fn scores_post(seed: &str, score: u32) -> Request<axum::body::Body> {
+    fn scores_post(seed: &str, mode: &str, score: u32) -> Request<axum::body::Body> {
         post_request(
-            &format!("/api/seeds/{seed}/scores"),
+            &format!("/api/seeds/{seed}/{mode}/scores"),
             serde_json::json!({ "score": score }),
         )
     }
@@ -1048,14 +1050,14 @@ mod tests {
     #[tokio::test]
     async fn post_seed_score_returns_200() {
         let (app, _store) = make_app(MockWikipediaClient::failing());
-        let response = app.oneshot(scores_post("ABC123", 3000)).await.unwrap();
+        let response = app.oneshot(scores_post("ABC123", "medium", 3000)).await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
     }
 
     #[tokio::test]
     async fn get_seed_scores_unknown_seed_returns_empty_list() {
         let (app, _store) = make_app(MockWikipediaClient::failing());
-        let response = app.oneshot(get_request("/api/seeds/UNKNOWN/scores")).await.unwrap();
+        let response = app.oneshot(get_request("/api/seeds/UNKNOWN/medium/scores")).await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         let result = parse_seed_scores(response).await;
         assert!(result.scores.is_empty());
@@ -1070,15 +1072,15 @@ mod tests {
             github_token: "test_token".to_string(),
         };
         Router::new()
-            .route("/api/seeds/:seed/scores", get(get_seed_scores).post(post_seed_score))
+            .route("/api/seeds/:seed/:mode/scores", get(get_seed_scores).post(post_seed_score))
             .with_state(state)
     }
 
     #[tokio::test]
     async fn get_seed_scores_after_one_post_returns_that_score() {
         let app = make_scores_app();
-        app.clone().oneshot(scores_post("ABC123", 3000)).await.unwrap();
-        let response = app.oneshot(get_request("/api/seeds/ABC123/scores")).await.unwrap();
+        app.clone().oneshot(scores_post("ABC123", "medium", 3000)).await.unwrap();
+        let response = app.oneshot(get_request("/api/seeds/ABC123/medium/scores")).await.unwrap();
         let result = parse_seed_scores(response).await;
         assert_eq!(result.scores, vec![3000]);
     }
@@ -1086,10 +1088,10 @@ mod tests {
     #[tokio::test]
     async fn get_seed_scores_accumulates_multiple_scores_in_order() {
         let app = make_scores_app();
-        app.clone().oneshot(scores_post("ABC123", 2000)).await.unwrap();
-        app.clone().oneshot(scores_post("ABC123", 4000)).await.unwrap();
-        app.clone().oneshot(scores_post("ABC123", 1000)).await.unwrap();
-        let response = app.oneshot(get_request("/api/seeds/ABC123/scores")).await.unwrap();
+        app.clone().oneshot(scores_post("ABC123", "medium", 2000)).await.unwrap();
+        app.clone().oneshot(scores_post("ABC123", "medium", 4000)).await.unwrap();
+        app.clone().oneshot(scores_post("ABC123", "medium", 1000)).await.unwrap();
+        let response = app.oneshot(get_request("/api/seeds/ABC123/medium/scores")).await.unwrap();
         let result = parse_seed_scores(response).await;
         assert_eq!(result.scores, vec![2000, 4000, 1000]);
     }
@@ -1097,13 +1099,26 @@ mod tests {
     #[tokio::test]
     async fn scores_for_different_seeds_are_independent() {
         let app = make_scores_app();
-        app.clone().oneshot(scores_post("AAA111", 5000)).await.unwrap();
-        app.clone().oneshot(scores_post("BBB222", 1000)).await.unwrap();
-        let r1 = app.clone().oneshot(get_request("/api/seeds/AAA111/scores")).await.unwrap();
-        let r2 = app.oneshot(get_request("/api/seeds/BBB222/scores")).await.unwrap();
+        app.clone().oneshot(scores_post("AAA111", "medium", 5000)).await.unwrap();
+        app.clone().oneshot(scores_post("BBB222", "medium", 1000)).await.unwrap();
+        let r1 = app.clone().oneshot(get_request("/api/seeds/AAA111/medium/scores")).await.unwrap();
+        let r2 = app.oneshot(get_request("/api/seeds/BBB222/medium/scores")).await.unwrap();
         let s1 = parse_seed_scores(r1).await;
         let s2 = parse_seed_scores(r2).await;
         assert_eq!(s1.scores, vec![5000]);
         assert_eq!(s2.scores, vec![1000]);
+    }
+
+    #[tokio::test]
+    async fn same_seed_different_modes_scores_are_independent() {
+        let app = make_scores_app();
+        app.clone().oneshot(scores_post("ABC123", "medium", 3000)).await.unwrap();
+        app.clone().oneshot(scores_post("ABC123", "hard",   4500)).await.unwrap();
+        let r_med  = app.clone().oneshot(get_request("/api/seeds/ABC123/medium/scores")).await.unwrap();
+        let r_hard = app.oneshot(get_request("/api/seeds/ABC123/hard/scores")).await.unwrap();
+        let s_med  = parse_seed_scores(r_med).await;
+        let s_hard = parse_seed_scores(r_hard).await;
+        assert_eq!(s_med.scores,  vec![3000], "medium scores contaminated by hard");
+        assert_eq!(s_hard.scores, vec![4500], "hard scores contaminated by medium");
     }
 }

@@ -3,6 +3,7 @@ use leptos::prelude::*;
 
 use crate::daily::DailyEntry;
 use crate::feedback_strings::FEEDBACK_BUTTON_LABEL;
+use crate::mode::mode_str;
 use crate::seed::generate_seed;
 
 #[component]
@@ -11,8 +12,20 @@ pub fn HomeScreen(
     on_report:    Callback<()>,
     daily_result: Signal<Option<DailyEntry>>,
 ) -> impl IntoView {
-    let show_picker           = RwSignal::new(false);
-    let show_challenge_picker = RwSignal::new(false);
+    let show_picker      = RwSignal::new(false);
+    let chal_open        = RwSignal::new(false);
+    // When Some, a mode has been selected — (seed, mode). Seed is fixed for the session.
+    let challenge_ready  = RwSignal::new(Option::<(String, GameMode)>::None);
+    let link_copied      = RwSignal::new(false);
+
+    let pick_challenge = move |mode: GameMode| {
+        // Keep the same seed if already generated, so changing mode doesn't break shared links
+        let seed = challenge_ready.get()
+            .map(|(s, _)| s)
+            .unwrap_or_else(generate_seed);
+        link_copied.set(false);
+        challenge_ready.set(Some((seed, mode)));
+    };
 
     view! {
         <div class="home">
@@ -25,7 +38,8 @@ pub fn HomeScreen(
                         class="mode-btn play"
                         class:open=move || show_picker.get()
                         on:click=move |_| {
-                            show_challenge_picker.set(false);
+                            chal_open.set(false);
+                            challenge_ready.set(None);
                             show_picker.update(|v| *v = !*v);
                         }
                     >
@@ -61,38 +75,80 @@ pub fn HomeScreen(
                 <div class="play-group">
                     <button
                         class="mode-btn challenge"
-                        class:open=move || show_challenge_picker.get()
+                        class:open=move || chal_open.get()
                         on:click=move |_| {
                             show_picker.set(false);
-                            show_challenge_picker.update(|v| *v = !*v);
+                            if chal_open.get() {
+                                chal_open.set(false);
+                                challenge_ready.set(None);
+                            } else {
+                                chal_open.set(true);
+                            }
                         }
                     >
                         "CHALLENGE"
                     </button>
-                    {move || show_challenge_picker.get().then(|| view! {
-                        <div class="difficulty-picker">
-                            <button class="difficulty-btn easy"
-                                on:click=move |_| {
-                                    show_challenge_picker.set(false);
-                                    on_start.run((GameMode::Easy, Some(generate_seed())));
-                                }>
-                                "Easy"
-                            </button>
-                            <button class="difficulty-btn medium"
-                                on:click=move |_| {
-                                    show_challenge_picker.set(false);
-                                    on_start.run((GameMode::Medium, Some(generate_seed())));
-                                }>
-                                "Medium"
-                            </button>
-                            <button class="difficulty-btn hard"
-                                on:click=move |_| {
-                                    show_challenge_picker.set(false);
-                                    on_start.run((GameMode::Hard, Some(generate_seed())));
-                                }>
-                                "Hard"
-                            </button>
-                        </div>
+
+                    {move || chal_open.get().then(|| {
+                        let selected = challenge_ready.get().map(|(_, m)| m);
+                        view! {
+                            <div class="difficulty-picker">
+                                <button
+                                    class="difficulty-btn easy"
+                                    class:selected=move || selected == Some(GameMode::Easy)
+                                    on:click=move |_| pick_challenge(GameMode::Easy)>
+                                    "Easy"
+                                </button>
+                                <button
+                                    class="difficulty-btn medium"
+                                    class:selected=move || selected == Some(GameMode::Medium)
+                                    on:click=move |_| pick_challenge(GameMode::Medium)>
+                                    "Medium"
+                                </button>
+                                <button
+                                    class="difficulty-btn hard"
+                                    class:selected=move || selected == Some(GameMode::Hard)
+                                    on:click=move |_| pick_challenge(GameMode::Hard)>
+                                    "Hard"
+                                </button>
+                            </div>
+                        }
+                    })}
+
+                    {move || challenge_ready.get().map(|(seed, mode)| {
+                        let origin = leptos::web_sys::window()
+                            .and_then(|w| w.location().origin().ok())
+                            .unwrap_or_else(|| "https://linguaguessr.io".into());
+                        let share_url = format!("{}/?seed={}&mode={}", origin, seed, mode_str(&mode));
+                        let share_url_copy = share_url.clone();
+
+                        view! {
+                            <div class="challenge-setup">
+                                <p class="challenge-setup-label">"Share the link, then start when ready"</p>
+                                <div class="challenge-setup-actions">
+                                    <button class="copy-btn" on:click=move |_| {
+                                        let url = share_url_copy.clone();
+                                        link_copied.set(true);
+                                        leptos::task::spawn_local(async move {
+                                            if let Some(window) = leptos::web_sys::window() {
+                                                let _ = wasm_bindgen_futures::JsFuture::from(
+                                                    window.navigator().clipboard().write_text(&url)
+                                                ).await;
+                                            }
+                                        });
+                                    }>
+                                        {move || if link_copied.get() { "Copied!" } else { "Copy link" }}
+                                    </button>
+                                    <button class="start-btn" on:click=move |_| {
+                                        chal_open.set(false);
+                                        challenge_ready.set(None);
+                                        on_start.run((mode, Some(seed.clone())));
+                                    }>
+                                        "START"
+                                    </button>
+                                </div>
+                            </div>
+                        }
                     })}
                 </div>
 
