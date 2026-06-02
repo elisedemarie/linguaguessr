@@ -2,6 +2,24 @@ use common::types::GameMode;
 
 use crate::mode::mode_str;
 
+pub(crate) fn parse_url_seed(search: &str) -> Option<(String, GameMode)> {
+    let query = search.trim_start_matches('?');
+    let mut seed: Option<String> = None;
+    let mut mode = GameMode::Medium;
+
+    for pair in query.split('&') {
+        let mut parts = pair.splitn(2, '=');
+        match (parts.next(), parts.next()) {
+            (Some("seed"), Some(v)) if !v.is_empty() => seed = Some(v.to_string()),
+            (Some("mode"), Some("easy")) => mode = GameMode::Easy,
+            (Some("mode"), Some("hard")) => mode = GameMode::Hard,
+            _ => {}
+        }
+    }
+
+    seed.map(|s| (s, mode))
+}
+
 const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 pub(crate) fn seed_from_values(values: [f64; 6]) -> String {
@@ -76,6 +94,59 @@ mod tests {
         // 0.999 * 36 = 35.964 → index 35 → '9'
         let s = seed_from_values([0.999, 0.999, 0.999, 0.999, 0.999, 0.999]);
         assert_eq!(&s, "999999");
+    }
+
+    // --- parse_url_seed ---
+
+    #[test]
+    fn parse_url_seed_returns_none_when_no_seed_param() {
+        assert_eq!(parse_url_seed(""), None);
+    }
+
+    #[test]
+    fn parse_url_seed_returns_none_when_only_mode_present() {
+        assert_eq!(parse_url_seed("?mode=hard"), None);
+    }
+
+    #[test]
+    fn parse_url_seed_returns_seed_with_default_medium_when_no_mode() {
+        let result = parse_url_seed("?seed=ABC123");
+        assert_eq!(result, Some(("ABC123".to_string(), GameMode::Medium)));
+    }
+
+    #[test]
+    fn parse_url_seed_returns_seed_and_easy_mode() {
+        let result = parse_url_seed("?seed=ABC123&mode=easy");
+        assert_eq!(result, Some(("ABC123".to_string(), GameMode::Easy)));
+    }
+
+    #[test]
+    fn parse_url_seed_returns_seed_and_hard_mode() {
+        let result = parse_url_seed("?seed=XYZ789&mode=hard");
+        assert_eq!(result, Some(("XYZ789".to_string(), GameMode::Hard)));
+    }
+
+    #[test]
+    fn parse_url_seed_returns_seed_and_medium_mode_explicitly() {
+        let result = parse_url_seed("?seed=ABC123&mode=medium");
+        assert_eq!(result, Some(("ABC123".to_string(), GameMode::Medium)));
+    }
+
+    #[test]
+    fn parse_url_seed_unknown_mode_defaults_to_medium() {
+        let result = parse_url_seed("?seed=ABC123&mode=nonsense");
+        assert_eq!(result, Some(("ABC123".to_string(), GameMode::Medium)));
+    }
+
+    #[test]
+    fn parse_url_seed_returns_none_for_empty_seed_value() {
+        assert_eq!(parse_url_seed("?seed="), None);
+    }
+
+    #[test]
+    fn parse_url_seed_handles_mode_before_seed() {
+        let result = parse_url_seed("?mode=hard&seed=ABC123");
+        assert_eq!(result, Some(("ABC123".to_string(), GameMode::Hard)));
     }
 
     // --- build_share_url ---
