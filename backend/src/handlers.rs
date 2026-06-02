@@ -20,14 +20,26 @@ use futures::future::join_all;
 #[derive(Clone)]
 pub struct AppState {
     pub store:        Arc<Mutex<HashMap<Uuid, GameSession>>>,
+    pub seed_scores:  Arc<Mutex<HashMap<String, Vec<u32>>>>,
     pub wikipedia:    Arc<dyn WikipediaClient>,
     pub github:       Arc<dyn GitHubClient>,
     pub github_token: String,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SeedScoreRequest {
+    pub score: u32,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SeedScores {
+    pub scores: Vec<u32>,
+}
+
 #[derive(Deserialize)]
 pub struct GameParams {
     pub mode: Option<GameMode>,
+    pub seed: Option<String>,
 }
 
 pub(crate) fn language_pool(mode: &GameMode) -> &'static [Language] {
@@ -38,7 +50,10 @@ pub(crate) fn language_pool(mode: &GameMode) -> &'static [Language] {
     }
 }
 
-pub(crate) fn select_languages(mode: &GameMode, date: chrono::NaiveDate) -> Vec<Language> {
+pub(crate) fn select_languages(mode: &GameMode, date: chrono::NaiveDate, seed: Option<&str>) -> Vec<Language> {
+    if let Some(seed) = seed {
+        return Language::seeded_languages(seed, language_pool(mode)).to_vec();
+    }
     match mode {
         GameMode::Daily => Language::daily_languages(date).to_vec(),
         _ => {
@@ -54,7 +69,7 @@ pub async fn get_game(
     Query(params): Query<GameParams>,
 ) -> impl IntoResponse {
     let mode = params.mode.unwrap_or_default();
-    let languages = select_languages(&mode, chrono::Utc::now().date_naive());
+    let languages = select_languages(&mode, chrono::Utc::now().date_naive(), params.seed.as_deref());
 
     let results = join_all(
         languages.iter().map(|lang| fetch_article(lang, state.wikipedia.as_ref()))
@@ -124,6 +139,31 @@ pub async fn post_guess(
     }).into_response()
 }
 
+pub async fn post_seed_score(
+    State(state): State<AppState>,
+    Path((seed, mode)): Path<(String, String)>,
+    Json(req): Json<SeedScoreRequest>,
+) -> impl IntoResponse {
+    let key = format!("{seed}:{mode}");
+    state.seed_scores.lock().unwrap()
+        .entry(key)
+        .or_default()
+        .push(req.score);
+    StatusCode::OK
+}
+
+pub async fn get_seed_scores(
+    State(state): State<AppState>,
+    Path((seed, mode)): Path<(String, String)>,
+) -> impl IntoResponse {
+    let key = format!("{seed}:{mode}");
+    let scores = state.seed_scores.lock().unwrap()
+        .get(&key)
+        .cloned()
+        .unwrap_or_default();
+    Json(SeedScores { scores })
+}
+
 pub async fn post_feedback(
     State(state): State<AppState>,
     Json(req): Json<FeedbackRequest>,
@@ -190,6 +230,7 @@ mod tests {
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
             store:        Arc::clone(&store),
+            seed_scores:  Arc::new(Mutex::new(HashMap::new())),
             wikipedia,
             github:       Arc::new(NoOpGitHubClient),
             github_token: "test_token".to_string(),
@@ -197,6 +238,7 @@ mod tests {
         let app = Router::new()
             .route("/api/game", get(get_game))
             .route("/api/game/:game_id/guess", axum::routing::post(post_guess))
+            .route("/api/seeds/:seed/:mode/scores", get(get_seed_scores).post(post_seed_score))
             .with_state(state);
         (app, store)
     }
@@ -321,6 +363,7 @@ mod tests {
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
             store:        Arc::clone(&store),
+            seed_scores:  Arc::new(Mutex::new(HashMap::new())),
             wikipedia:    Arc::new(OneFailsClient {
                 failed: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             }),
@@ -351,6 +394,7 @@ mod tests {
         let store = Arc::new(Mutex::new(HashMap::new()));
         let state = AppState {
             store:        Arc::clone(&store),
+            seed_scores:  Arc::new(Mutex::new(HashMap::new())),
             wikipedia:    Arc::new(SlowClient),
             github:       Arc::new(NoOpGitHubClient),
             github_token: "test_token".to_string(),
@@ -603,26 +647,26 @@ mod tests {
     #[test]
     fn select_languages_daily_same_date_same_result() {
         let date = chrono::NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
-        assert_eq!(select_languages(&GameMode::Daily, date), select_languages(&GameMode::Daily, date));
+        assert_eq!(select_languages(&GameMode::Daily, date, None), select_languages(&GameMode::Daily, date, None));
     }
 
     #[test]
     fn select_languages_daily_different_dates_different_results() {
         let date_a = chrono::NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
         let date_b = chrono::NaiveDate::from_ymd_opt(2026, 5, 31).unwrap();
-        assert_ne!(select_languages(&GameMode::Daily, date_a), select_languages(&GameMode::Daily, date_b));
+        assert_ne!(select_languages(&GameMode::Daily, date_a, None), select_languages(&GameMode::Daily, date_b, None));
     }
 
     #[test]
     fn select_languages_daily_returns_five() {
         let date = chrono::NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
-        assert_eq!(select_languages(&GameMode::Daily, date).len(), 5);
+        assert_eq!(select_languages(&GameMode::Daily, date, None).len(), 5);
     }
 
     #[test]
     fn select_languages_daily_from_full_pool() {
         let date = chrono::NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
-        let langs = select_languages(&GameMode::Daily, date);
+        let langs = select_languages(&GameMode::Daily, date, None);
         for lang in &langs {
             assert!(Language::all().contains(lang));
         }
@@ -631,7 +675,7 @@ mod tests {
     #[test]
     fn select_languages_medium_returns_five_from_medium_pool() {
         let date = chrono::NaiveDate::from_ymd_opt(2026, 5, 30).unwrap();
-        let langs = select_languages(&GameMode::Medium, date);
+        let langs = select_languages(&GameMode::Medium, date, None);
         assert_eq!(langs.len(), 5);
         for lang in &langs {
             assert!(Language::medium_pool().contains(lang));
@@ -812,6 +856,7 @@ mod tests {
     fn make_feedback_app(token: &str, github: Arc<dyn GitHubClient>) -> Router {
         let state = AppState {
             store:        Arc::new(Mutex::new(HashMap::new())),
+            seed_scores:  Arc::new(Mutex::new(HashMap::new())),
             wikipedia:    Arc::new(NoOpWikipediaClient),
             github,
             github_token: token.to_string(),
@@ -894,5 +939,186 @@ mod tests {
         let app = make_feedback_app("", github);
         app.oneshot(feedback_post(serde_json::json!({ "message": "help" }))).await.unwrap();
         assert_eq!(calls.lock().unwrap().len(), 0);
+    }
+
+    // --- seeded game creation ---
+
+    #[test]
+    fn select_languages_seeded_is_deterministic() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
+        let a = select_languages(&GameMode::Medium, date, Some("ABC123"));
+        let b = select_languages(&GameMode::Medium, date, Some("ABC123"));
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn select_languages_seeded_different_seeds_differ() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
+        let a = select_languages(&GameMode::Medium, date, Some("ABC123"));
+        let b = select_languages(&GameMode::Medium, date, Some("XYZ789"));
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn select_languages_seeded_medium_stays_in_medium_pool() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
+        let langs = select_languages(&GameMode::Medium, date, Some("ABC123"));
+        for lang in &langs {
+            assert!(Language::medium_pool().contains(lang), "{lang:?} not in medium pool");
+        }
+    }
+
+    #[test]
+    fn select_languages_seeded_easy_stays_in_easy_pool() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
+        let langs = select_languages(&GameMode::Easy, date, Some("ABC123"));
+        for lang in &langs {
+            assert!(Language::easy_pool().contains(lang), "{lang:?} not in easy pool");
+        }
+    }
+
+    #[test]
+    fn select_languages_seeded_hard_stays_in_full_pool() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
+        let langs = select_languages(&GameMode::Hard, date, Some("ABC123"));
+        for lang in &langs {
+            assert!(Language::all().contains(lang), "{lang:?} not in full pool");
+        }
+    }
+
+    #[test]
+    fn select_languages_same_seed_different_mode_differs() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
+        let easy = select_languages(&GameMode::Easy, date, Some("ABC123"));
+        let hard = select_languages(&GameMode::Hard, date, Some("ABC123"));
+        assert_ne!(easy, hard);
+    }
+
+    #[test]
+    fn select_languages_no_seed_none_does_not_break_daily() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
+        let a = select_languages(&GameMode::Daily, date, None);
+        let b = select_languages(&GameMode::Daily, date, None);
+        assert_eq!(a, b);
+    }
+
+    #[tokio::test]
+    async fn seeded_game_returns_200_with_five_rounds() {
+        let (app, _store) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?seed=ABC123")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let game = parse_game_view(response).await;
+        assert_eq!(game.rounds.len(), 5);
+    }
+
+    #[tokio::test]
+    async fn seeded_game_session_stored_in_state() {
+        let (app, store) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?seed=ABC123")).await.unwrap();
+        let game = parse_game_view(response).await;
+        assert!(store.lock().unwrap().contains_key(&game.game_id));
+    }
+
+    #[tokio::test]
+    async fn seeded_game_with_easy_mode_returns_200() {
+        let (app, _store) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?seed=ABC123&mode=easy")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn seeded_game_with_hard_mode_returns_200() {
+        let (app, _store) = make_app(MockWikipediaClient::returning(sample_text()));
+        let response = app.oneshot(get_request("/api/game?seed=ABC123&mode=hard")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    // --- seed scores ---
+
+    fn scores_post(seed: &str, mode: &str, score: u32) -> Request<axum::body::Body> {
+        post_request(
+            &format!("/api/seeds/{seed}/{mode}/scores"),
+            serde_json::json!({ "score": score }),
+        )
+    }
+
+    async fn parse_seed_scores(response: axum::response::Response) -> SeedScores {
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        serde_json::from_slice(&bytes).unwrap()
+    }
+
+    #[tokio::test]
+    async fn post_seed_score_returns_200() {
+        let (app, _store) = make_app(MockWikipediaClient::failing());
+        let response = app.oneshot(scores_post("ABC123", "medium", 3000)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn get_seed_scores_unknown_seed_returns_empty_list() {
+        let (app, _store) = make_app(MockWikipediaClient::failing());
+        let response = app.oneshot(get_request("/api/seeds/UNKNOWN/medium/scores")).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let result = parse_seed_scores(response).await;
+        assert!(result.scores.is_empty());
+    }
+
+    fn make_scores_app() -> Router {
+        let state = AppState {
+            store:        Arc::new(Mutex::new(HashMap::new())),
+            seed_scores:  Arc::new(Mutex::new(HashMap::new())),
+            wikipedia:    MockWikipediaClient::failing(),
+            github:       Arc::new(NoOpGitHubClient),
+            github_token: "test_token".to_string(),
+        };
+        Router::new()
+            .route("/api/seeds/:seed/:mode/scores", get(get_seed_scores).post(post_seed_score))
+            .with_state(state)
+    }
+
+    #[tokio::test]
+    async fn get_seed_scores_after_one_post_returns_that_score() {
+        let app = make_scores_app();
+        app.clone().oneshot(scores_post("ABC123", "medium", 3000)).await.unwrap();
+        let response = app.oneshot(get_request("/api/seeds/ABC123/medium/scores")).await.unwrap();
+        let result = parse_seed_scores(response).await;
+        assert_eq!(result.scores, vec![3000]);
+    }
+
+    #[tokio::test]
+    async fn get_seed_scores_accumulates_multiple_scores_in_order() {
+        let app = make_scores_app();
+        app.clone().oneshot(scores_post("ABC123", "medium", 2000)).await.unwrap();
+        app.clone().oneshot(scores_post("ABC123", "medium", 4000)).await.unwrap();
+        app.clone().oneshot(scores_post("ABC123", "medium", 1000)).await.unwrap();
+        let response = app.oneshot(get_request("/api/seeds/ABC123/medium/scores")).await.unwrap();
+        let result = parse_seed_scores(response).await;
+        assert_eq!(result.scores, vec![2000, 4000, 1000]);
+    }
+
+    #[tokio::test]
+    async fn scores_for_different_seeds_are_independent() {
+        let app = make_scores_app();
+        app.clone().oneshot(scores_post("AAA111", "medium", 5000)).await.unwrap();
+        app.clone().oneshot(scores_post("BBB222", "medium", 1000)).await.unwrap();
+        let r1 = app.clone().oneshot(get_request("/api/seeds/AAA111/medium/scores")).await.unwrap();
+        let r2 = app.oneshot(get_request("/api/seeds/BBB222/medium/scores")).await.unwrap();
+        let s1 = parse_seed_scores(r1).await;
+        let s2 = parse_seed_scores(r2).await;
+        assert_eq!(s1.scores, vec![5000]);
+        assert_eq!(s2.scores, vec![1000]);
+    }
+
+    #[tokio::test]
+    async fn same_seed_different_modes_scores_are_independent() {
+        let app = make_scores_app();
+        app.clone().oneshot(scores_post("ABC123", "medium", 3000)).await.unwrap();
+        app.clone().oneshot(scores_post("ABC123", "hard",   4500)).await.unwrap();
+        let r_med  = app.clone().oneshot(get_request("/api/seeds/ABC123/medium/scores")).await.unwrap();
+        let r_hard = app.oneshot(get_request("/api/seeds/ABC123/hard/scores")).await.unwrap();
+        let s_med  = parse_seed_scores(r_med).await;
+        let s_hard = parse_seed_scores(r_hard).await;
+        assert_eq!(s_med.scores,  vec![3000], "medium scores contaminated by hard");
+        assert_eq!(s_hard.scores, vec![4500], "hard scores contaminated by medium");
     }
 }

@@ -1,7 +1,12 @@
 use common::api::{GameView, GuessRequest, GuessResponse};
 use common::types::{GameMode, Language};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+#[derive(Deserialize)]
+pub struct SeedScores {
+    pub scores: Vec<u32>,
+}
 
 use crate::mode::mode_str;
 
@@ -25,10 +30,19 @@ const BACKEND_URL: &str = match option_env!("BACKEND_URL") {
     None => "http://localhost:3000",
 };
 
-pub async fn fetch_game(mode: &GameMode) -> Result<GameView, String> {
-    let response = gloo_net::http::Request::get(
-        &format!("{BACKEND_URL}/api/game?mode={}", mode_str(mode))
-    )
+pub(crate) fn seed_scores_url(backend: &str, seed: &str, mode: &GameMode) -> String {
+    format!("{backend}/api/seeds/{seed}/{}/scores", mode_str(mode))
+}
+
+pub(crate) fn game_url(backend: &str, mode: &GameMode, seed: Option<&str>) -> String {
+    match seed {
+        Some(s) => format!("{backend}/api/game?seed={s}&mode={}", mode_str(mode)),
+        None    => format!("{backend}/api/game?mode={}", mode_str(mode)),
+    }
+}
+
+pub async fn fetch_game(mode: &GameMode, seed: Option<&str>) -> Result<GameView, String> {
+    let response = gloo_net::http::Request::get(&game_url(BACKEND_URL, mode, seed))
     .send()
     .await
     .map_err(|e| format!("Network error: {e}"))?;
@@ -65,6 +79,35 @@ pub async fn submit_guess(
     response.json::<GuessResponse>().await.map_err(|e| format!("Parse error: {e}"))
 }
 
+pub async fn post_seed_score(seed: &str, mode: &GameMode, score: u32) -> Result<(), String> {
+    let body = serde_json::to_string(&serde_json::json!({ "score": score }))
+        .map_err(|e| format!("Serialise error: {e}"))?;
+    let response = gloo_net::http::Request::post(&seed_scores_url(BACKEND_URL, seed, mode))
+        .header("Content-Type", "application/json")
+        .body(body)
+        .map_err(|e| format!("Request error: {e}"))?
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {e}"))?;
+    if !response.ok() {
+        return Err(format!("Server error: {}", response.status()));
+    }
+    Ok(())
+}
+
+pub async fn fetch_seed_scores(seed: &str, mode: &GameMode) -> Result<Vec<u32>, String> {
+    let response = gloo_net::http::Request::get(&seed_scores_url(BACKEND_URL, seed, mode))
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {e}"))?;
+    if !response.ok() {
+        return Err(format!("Server error: {}", response.status()));
+    }
+    response.json::<SeedScores>().await
+        .map(|s| s.scores)
+        .map_err(|e| format!("Parse error: {e}"))
+}
+
 pub async fn submit_feedback(payload: &FeedbackPayload) -> Result<(), String> {
     let body = serde_json::to_string(payload)
         .map_err(|e| format!("Serialise error: {e}"))?;
@@ -89,6 +132,53 @@ pub async fn submit_feedback(payload: &FeedbackPayload) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use common::types::GameMode;
+
+    // --- seed_scores_url ---
+
+    #[test]
+    fn seed_scores_url_includes_mode() {
+        let url = seed_scores_url("http://localhost:3000", "ABC123", &GameMode::Medium);
+        assert_eq!(url, "http://localhost:3000/api/seeds/ABC123/medium/scores");
+    }
+
+    #[test]
+    fn seed_scores_url_hard_mode() {
+        let url = seed_scores_url("https://api.linguaguessr.io", "XYZ789", &GameMode::Hard);
+        assert_eq!(url, "https://api.linguaguessr.io/api/seeds/XYZ789/hard/scores");
+    }
+
+    #[test]
+    fn seed_scores_url_easy_mode() {
+        let url = seed_scores_url("http://localhost:3000", "ABC123", &GameMode::Easy);
+        assert_eq!(url, "http://localhost:3000/api/seeds/ABC123/easy/scores");
+    }
+
+    // --- game_url ---
+
+    #[test]
+    fn game_url_without_seed_includes_mode() {
+        let url = game_url("http://localhost:3000", &GameMode::Medium, None);
+        assert_eq!(url, "http://localhost:3000/api/game?mode=medium");
+    }
+
+    #[test]
+    fn game_url_without_seed_easy() {
+        let url = game_url("http://localhost:3000", &GameMode::Easy, None);
+        assert_eq!(url, "http://localhost:3000/api/game?mode=easy");
+    }
+
+    #[test]
+    fn game_url_with_seed_includes_both() {
+        let url = game_url("http://localhost:3000", &GameMode::Hard, Some("ABC123"));
+        assert_eq!(url, "http://localhost:3000/api/game?seed=ABC123&mode=hard");
+    }
+
+    #[test]
+    fn game_url_with_seed_medium() {
+        let url = game_url("http://localhost:3000", &GameMode::Medium, Some("XYZ789"));
+        assert_eq!(url, "http://localhost:3000/api/game?seed=XYZ789&mode=medium");
+    }
 
     fn only_message() -> FeedbackPayload {
         FeedbackPayload {
