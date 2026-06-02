@@ -11,20 +11,21 @@ pub fn HomeScreen(
     on_report:    Callback<()>,
     daily_result: Signal<Option<DailyEntry>>,
 ) -> impl IntoView {
-    let show_picker       = RwSignal::new(false);
-    let show_share_picker = RwSignal::new(false);
+    let show_picker           = RwSignal::new(false);
+    let show_challenge_picker = RwSignal::new(false);
 
     view! {
         <div class="home">
             <h1 class="title"><span class="title-accent">"Lingua"</span>"Guessr"</h1>
             <p class="subtitle">"Can you identify the language?"</p>
             <div class="primary-buttons">
+
                 <div class="play-group">
                     <button
                         class="mode-btn play"
                         class:open=move || show_picker.get()
                         on:click=move |_| {
-                            show_share_picker.set(false);
+                            show_challenge_picker.set(false);
                             show_picker.update(|v| *v = !*v);
                         }
                     >
@@ -56,6 +57,45 @@ pub fn HomeScreen(
                         </div>
                     })}
                 </div>
+
+                <div class="play-group">
+                    <button
+                        class="mode-btn challenge"
+                        class:open=move || show_challenge_picker.get()
+                        on:click=move |_| {
+                            show_picker.set(false);
+                            show_challenge_picker.update(|v| *v = !*v);
+                        }
+                    >
+                        "CHALLENGE"
+                    </button>
+                    {move || show_challenge_picker.get().then(|| view! {
+                        <div class="difficulty-picker">
+                            <button class="difficulty-btn easy"
+                                on:click=move |_| {
+                                    show_challenge_picker.set(false);
+                                    on_start.run((GameMode::Easy, Some(generate_seed())));
+                                }>
+                                "Easy"
+                            </button>
+                            <button class="difficulty-btn medium"
+                                on:click=move |_| {
+                                    show_challenge_picker.set(false);
+                                    on_start.run((GameMode::Medium, Some(generate_seed())));
+                                }>
+                                "Medium"
+                            </button>
+                            <button class="difficulty-btn hard"
+                                on:click=move |_| {
+                                    show_challenge_picker.set(false);
+                                    on_start.run((GameMode::Hard, Some(generate_seed())));
+                                }>
+                                "Hard"
+                            </button>
+                        </div>
+                    })}
+                </div>
+
                 <div class="daily-button">
                     {move || match daily_result.get() {
                         Some(entry) => view! {
@@ -72,43 +112,7 @@ pub fn HomeScreen(
                         }.into_any(),
                     }}
                 </div>
-                <div class="play-group">
-                    <button
-                        class="mode-btn share"
-                        class:open=move || show_share_picker.get()
-                        on:click=move |_| {
-                            show_picker.set(false);
-                            show_share_picker.update(|v| *v = !*v);
-                        }
-                    >
-                        "SHARE"
-                    </button>
-                    {move || show_share_picker.get().then(|| view! {
-                        <div class="difficulty-picker">
-                            <button class="difficulty-btn easy"
-                                on:click=move |_| {
-                                    show_share_picker.set(false);
-                                    on_start.run((GameMode::Easy, Some(generate_seed())));
-                                }>
-                                "Easy"
-                            </button>
-                            <button class="difficulty-btn medium"
-                                on:click=move |_| {
-                                    show_share_picker.set(false);
-                                    on_start.run((GameMode::Medium, Some(generate_seed())));
-                                }>
-                                "Medium"
-                            </button>
-                            <button class="difficulty-btn hard"
-                                on:click=move |_| {
-                                    show_share_picker.set(false);
-                                    on_start.run((GameMode::Hard, Some(generate_seed())));
-                                }>
-                                "Hard"
-                            </button>
-                        </div>
-                    })}
-                </div>
+
             </div>
             <div class="end-actions">
                 <a
