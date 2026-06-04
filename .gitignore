@@ -2,3 +2,4 @@ target/
 mutants.out/
 mutants.out.old/
 frontend/dist/
+plans/
